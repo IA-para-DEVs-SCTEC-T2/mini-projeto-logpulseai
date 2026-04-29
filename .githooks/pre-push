@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# Git Hook para validar nome da branch antes do push
+# Este script é executado ANTES do push ser enviado
+
+BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+
+echo "🔍 Validando nome da branch: $BRANCH_NAME"
+echo ""
+
+# Branches protegidas permitidas
+if [[ "$BRANCH_NAME" == "main" || "$BRANCH_NAME" == "develop" ]]; then
+    echo "✅ Branch protegida permitida: $BRANCH_NAME"
+    exit 0
+fi
+
+# Valida o padrão: feature-<nome> ou hotfix-<nome>
+if ! echo "$BRANCH_NAME" | grep -qE "^(feature|hotfix)-[a-z0-9-]{3,}$"; then
+    echo "❌ ERRO: Nome da branch inválido!"
+    echo ""
+    echo "Branch atual: $BRANCH_NAME"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "📋 PADRÃO ACEITO:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "  feature-<nome-da-tarefa>"
+    echo "  hotfix-<nome-da-tarefa>"
+    echo "  main"
+    echo "  develop"
+    echo ""
+    echo "  • Nome da tarefa: mínimo 3 caracteres"
+    echo "  • Apenas letras minúsculas, números e hífens"
+    echo "  • Sem espaços, underscores ou caracteres especiais"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "✅ EXEMPLOS VÁLIDOS:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "  ✅ main"
+    echo "  ✅ develop"
+    echo "  ✅ feature-analise-logs-ia"
+    echo "  ✅ hotfix-correcao-timeout"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "❌ EXEMPLOS INVÁLIDOS:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "  ❌ feat/nova-feature (use 'feature-' ao invés de 'feat/')"
+    echo "  ❌ feature-Teste (não use letras maiúsculas)"
+    echo "  ❌ teste-validacao (falta o prefixo 'feature-' ou 'hotfix-')"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "💡 Dica: Renomeie a branch com:"
+    echo "   git branch -m feature-<nome-da-tarefa>"
+    echo ""
+    exit 1
+fi
+
+echo "✅ Nome da branch válido!"
+exit 0
