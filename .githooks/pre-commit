@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Proteção contra commits diretos na branch main
+branch=$(git symbolic-ref HEAD 2>/dev/null | sed -e 's,.*/\(.*\),\1,')
+
+if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
+  echo ""
+  echo "❌ ERRO: Commits diretos na branch '$branch' não são permitidos!"
+  echo ""
+  echo "Por favor:"
+  echo "  1. Crie uma branch de feature: git checkout -b feature/sua-feature"
+  echo "  2. Faça seus commits na nova branch"
+  echo "  3. Envie a branch: git push origin feature/sua-feature"
+  echo "  4. Crie um Pull Request no GitHub"
+  echo ""
+  exit 1
+fi
+
+exit 0

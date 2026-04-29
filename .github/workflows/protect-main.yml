@@ -1,0 +1,57 @@
+name: Protect Main Branch
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  block-direct-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if push is from a merge
+        id: check_merge
+        run: |
+          # Verifica se o commit é um merge commit
+          COMMIT_SHA="${{ github.sha }}"
+          PARENT_COUNT=$(git rev-list --parents -n 1 $COMMIT_SHA | wc -w)
+          
+          # Um merge commit tem 3 ou mais palavras (commit + 2+ parents)
+          if [ $PARENT_COUNT -ge 3 ]; then
+            echo "✅ Merge commit detectado - permitido"
+            echo "is_merge=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Commit direto detectado - bloqueado"
+            echo "is_merge=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Block direct commits
+        if: steps.check_merge.outputs.is_merge == 'false'
+        run: |
+          echo ""
+          echo "════════════════════════════════════════════════════════════"
+          echo "❌ ERRO: Commits diretos na branch '${{ github.ref_name }}' não são permitidos!"
+          echo "════════════════════════════════════════════════════════════"
+          echo ""
+          echo "📋 Processo correto:"
+          echo "  1. Crie uma branch de feature"
+          echo "  2. Faça seus commits na branch de feature"
+          echo "  3. Abra um Pull Request"
+          echo "  4. Faça merge através do Pull Request"
+          echo ""
+          echo "🔧 Para reverter este commit:"
+          echo "  git reset --hard HEAD~1"
+          echo "  git push --force"
+          echo ""
+          exit 1
+
+      - name: Success
+        if: steps.check_merge.outputs.is_merge == 'true'
+        run: |
+          echo "✅ Merge via Pull Request - permitido!"
