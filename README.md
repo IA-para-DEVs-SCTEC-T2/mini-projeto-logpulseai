@@ -92,6 +92,8 @@ O projeto possui validações em **duas camadas**:
 - ✅ **Commits semânticos**: Apenas `feat:`, `fix:`, `docs:` e `refactor:`
 - ✅ **Nome de branches**: Padrão `feature-<nome>` ou `hotfix-<nome>`
 - ✅ **Proteção da branch main**: Exige 2 aprovações antes do merge
+- ⚡ **Execução automática** ao criar/atualizar Pull Request
+- 📝 [Como testar as validações](TESTE-GITHUB-ACTIONS.md)
 
 **Regras principais:**
 - Nunca commite diretamente na `main`

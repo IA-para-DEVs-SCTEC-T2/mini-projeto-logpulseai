@@ -45,6 +45,16 @@ if ! echo "$COMMIT_MSG" | grep -qE "^($ALLOWED_PREFIXES)(\(.+\))?: .+"; then
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
+    echo "💡 COMO CORRIGIR:"
+    echo ""
+    echo "  Opção 1: Refazer o commit com mensagem correta"
+    echo "  git commit -m \"feat: sua descrição aqui\""
+    echo ""
+    echo "  Opção 2: Corrigir o último commit"
+    echo "  git commit --amend -m \"feat: sua descrição aqui\""
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
     exit 1
 fi
 
