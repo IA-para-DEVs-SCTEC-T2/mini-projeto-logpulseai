@@ -90,14 +90,14 @@ O projeto possui validações em **duas camadas**:
 - 🔒 **Proteção final** no Pull Request
 - ✅ **Commits semânticos**: Apenas `feat:`, `fix:`, `docs:` e `refactor:`
 - ✅ **Nome de branches**: Padrão `feature-<nome>` ou `hotfix-<nome>`
-- ✅ **Proteção da branch main**: Exige 2 aprovações antes do merge
+- ✅ **Proteção da branch main**: Exige 1 aprovação antes do merge
 - ⚡ **Execução automática** ao criar/atualizar Pull Request
 
 **Regras principais:**
 - Nunca commite diretamente na `main`
 - Use commits semânticos: `feat:`, `fix:`, `docs:`, `refactor:`
 - Nomes de branch: `feature-<nome>`, `hotfix-<nome>`, `main`, `develop`
-- Todo merge via Pull Request com **2 aprovações mínimas**
+- Todo merge via Pull Request com **1 aprovação mínima**
 
 ## Status
 

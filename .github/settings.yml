@@ -27,7 +27,7 @@ branches:
       # Exige pull request antes de fazer merge
       required_pull_request_reviews:
         # Número mínimo de aprovações necessárias
-        required_approving_review_count: 2
+        required_approving_review_count: 1
         # Descarta aprovações antigas quando novos commits são adicionados
         dismiss_stale_reviews: true
         # Exige revisão de code owners (se houver arquivo CODEOWNERS)
