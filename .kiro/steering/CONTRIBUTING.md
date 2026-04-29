@@ -4,6 +4,29 @@ inclusion: always
 
 # Diretrizes de Contribuição — LogPulse IA
 
+## Estrutura do Projeto
+
+```
+logpulse-ia/
+├── src/                  # Código-fonte principal
+│   ├── sources/          # Adaptadores de fonte de log (LogSource)
+│   ├── parsers/          # Parsers por formato (JSON, plaintext, syslog)
+│   ├── analyzer/         # Motor de detecção de anomalias
+│   ├── ai/               # AI Engine (integração com LLMs)
+│   └── cli/              # Interface de linha de comando
+├── tests/                # Testes automatizados
+├── logs/                 # Arquivos de log para testes e exemplos
+├── docs/                 # Documentação adicional
+└── README.md
+```
+
+- Todo código novo vai em `src/` no módulo correspondente
+- Testes ficam em `tests/`, espelhando a estrutura de `src/`
+- Arquivos `.log` de exemplo e fixtures ficam em `logs/`
+- Documentação técnica adicional fica em `docs/`
+
+---
+
 ## Proteção da Branch `main`
 
 - **Nunca** faça commits diretamente na branch `main`.
