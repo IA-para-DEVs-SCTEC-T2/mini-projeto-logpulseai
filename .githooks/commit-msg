@@ -6,6 +6,16 @@
 COMMIT_MSG_FILE=$1
 COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
 
+# Proteção adicional contra commits diretos na branch main
+branch=$(git symbolic-ref HEAD 2>/dev/null | sed -e 's,.*/\(.*\),\1,')
+
+if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
+  echo ""
+  echo "❌ ERRO: Commits diretos na branch '$branch' não são permitidos!"
+  echo ""
+  exit 1
+fi
+
 # Define os prefixos permitidos
 ALLOWED_PREFIXES="feat|fix|docs|refactor"
 
