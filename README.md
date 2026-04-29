@@ -77,9 +77,27 @@ A variável de ambiente `LOGPULSE_API_KEY` tem precedência sobre o arquivo de c
 
 Leia as [diretrizes de contribuição](.kiro/steering/CONTRIBUTING.md) antes de abrir um PR.
 
+### 🔒 Validações Automáticas
+
+O projeto possui validações em **duas camadas**:
+
+#### 1️⃣ Validações Locais (Git Hooks)
+- ⚡ **Feedback instantâneo** antes de commit/push
+- ✅ Valida mensagens de commit
+- ✅ Valida nome da branch
+
+#### 2️⃣ Validações no GitHub (GitHub Actions)
+- 🔒 **Proteção final** no Pull Request
+- ✅ **Commits semânticos**: Apenas `feat:`, `fix:`, `docs:` e `refactor:`
+- ✅ **Nome de branches**: Padrão `feature-<nome>` ou `hotfix-<nome>`
+- ✅ **Proteção da branch main**: Exige 1 aprovação antes do merge
+- ⚡ **Execução automática** ao criar/atualizar Pull Request
+
+**Regras principais:**
 - Nunca commite diretamente na `main`
-- Use commits semânticos (`feat:`, `fix:`, `docs:`, etc.)
-- Todo merge via Pull Request com revisão
+- Use commits semânticos: `feat:`, `fix:`, `docs:`, `refactor:`
+- Nomes de branch: `feature-<nome>`, `hotfix-<nome>`, `main`, `develop`
+- Todo merge via Pull Request com **1 aprovação mínima**
 
 ## Status
 

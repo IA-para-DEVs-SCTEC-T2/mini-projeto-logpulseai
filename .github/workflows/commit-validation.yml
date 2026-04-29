@@ -1,0 +1,99 @@
+name: "Commit Message Validation"
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate-commits:
+    runs-on: ubuntu-latest
+    name: Validar mensagens de commit
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Necessário para acessar todo o histórico de commits
+      
+      - name: Validar formato dos commits
+        run: |
+          # Define os prefixos permitidos
+          ALLOWED_PREFIXES="feat|fix|docs|refactor"
+          
+          # Pega todos os commits do PR
+          COMMITS=$(git log --format=%s ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          
+          echo "🔍 Validando mensagens de commit..."
+          echo ""
+          
+          INVALID_COMMITS=()
+          
+          while IFS= read -r commit_msg; do
+            # Ignora commits vazios
+            if [ -z "$commit_msg" ]; then
+              continue
+            fi
+            
+            echo "Verificando: $commit_msg"
+            
+            # Valida se o commit segue o padrão: <tipo>: <descrição>
+            # ou <tipo>(escopo): <descrição>
+            if ! echo "$commit_msg" | grep -qE "^($ALLOWED_PREFIXES)(\(.+\))?: .+"; then
+              INVALID_COMMITS+=("$commit_msg")
+            fi
+          done <<< "$COMMITS"
+          
+          # Se houver commits inválidos, falha o workflow
+          if [ ${#INVALID_COMMITS[@]} -gt 0 ]; then
+            echo ""
+            echo "❌ ERRO: Commits com formato inválido detectados!"
+            echo ""
+            echo "Os seguintes commits não seguem o padrão de Conventional Commits:"
+            echo ""
+            for invalid in "${INVALID_COMMITS[@]}"; do
+              echo "  ❌ $invalid"
+            done
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📋 PADRÃO ACEITO:"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            echo "  <tipo>: <descrição curta no imperativo>"
+            echo "  <tipo>(escopo): <descrição curta no imperativo>"
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "✅ TIPOS PERMITIDOS:"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            echo "  • feat:     Nova funcionalidade"
+            echo "  • fix:      Correção de bug"
+            echo "  • docs:     Documentação"
+            echo "  • refactor: Melhoria sem mudar função"
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📝 EXEMPLOS VÁLIDOS:"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            echo "  ✅ feat: adiciona parser de logs JSON"
+            echo "  ✅ fix: corrige timeout na análise"
+            echo "  ✅ docs: atualiza README com exemplos"
+            echo "  ✅ refactor: simplifica lógica do analyzer"
+            echo "  ✅ feat(cli): adiciona comando analyze"
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "❌ EXEMPLOS INVÁLIDOS:"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            echo "  ❌ feature: teste"
+            echo "  ❌ ajustes"
+            echo "  ❌ WIP"
+            echo "  ❌ corrigindo bug"
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ Todos os commits seguem o padrão Conventional Commits!"
+          echo ""
