@@ -28,7 +28,14 @@ jobs:
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             COMMITS=$(git log --format=%s ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
           else
-            COMMITS=$(git log --format=%s ${{ github.event.before }}..${{ github.event.after }})
+            # Verifica se é o primeiro push da branch (before = 0000000...)
+            if [ "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]; then
+              # Para primeiro push, pega commits desde a branch base (main/develop)
+              BASE_BRANCH=$(git rev-parse --abbrev-ref origin/main 2>/dev/null || git rev-parse --abbrev-ref origin/develop 2>/dev/null || echo "HEAD~10")
+              COMMITS=$(git log --format=%s $BASE_BRANCH..${{ github.event.after }} 2>/dev/null || git log --format=%s -n 10 ${{ github.event.after }})
+            else
+              COMMITS=$(git log --format=%s ${{ github.event.before }}..${{ github.event.after }})
+            fi
           fi
           
           echo "🔍 Validando mensagens de commit..."
