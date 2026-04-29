@@ -2,9 +2,9 @@
 inclusion: always
 ---
 
-# Diretrizes de Contribuição — LogPulse IA
+# Estrutura e Contribuição — LogPulse IA
 
-## Estrutura do Projeto
+## Estrutura de Pastas
 
 ```
 logpulse-ia/
@@ -29,9 +29,9 @@ logpulse-ia/
 
 ## Proteção da Branch `main`
 
-- **Nunca** faça commits diretamente na branch `main`.
-- Todo desenvolvimento deve ocorrer em branches separadas, criadas a partir de `main`.
-- Alterações chegam à `main` exclusivamente via Pull Request (PR), após revisão e aprovação.
+- **Nunca** faça commits diretamente na branch `main`
+- Todo desenvolvimento ocorre em branches separadas, criadas a partir de `main`
+- Alterações chegam à `main` exclusivamente via Pull Request, após revisão e aprovação
 
 ### Nomenclatura de branches
 
@@ -56,17 +56,17 @@ Todos os commits devem seguir o padrão [Conventional Commits](https://www.conve
 
 ### Tipos principais
 
-| Tipo       | Quando usar                          |
-|------------|--------------------------------------|
-| `feat`     | Nova funcionalidade                  |
-| `fix`      | Correção de bug                      |
-| `docs`     | Documentação                         |
-| `refactor` | Melhoria sem mudar função            |
-| `style`    | Formatação, sem mudança de lógica    |
-| `test`     | Adição ou correção de testes         |
-| `chore`    | Manutenção (build, deps, configs)    |
-| `perf`     | Melhoria de performance              |
-| `ci`       | Mudanças em pipelines de CI/CD       |
+| Tipo       | Quando usar                       |
+|------------|-----------------------------------|
+| `feat`     | Nova funcionalidade               |
+| `fix`      | Correção de bug                   |
+| `docs`     | Documentação                      |
+| `refactor` | Melhoria sem mudar função         |
+| `style`    | Formatação, sem mudança de lógica |
+| `test`     | Adição ou correção de testes      |
+| `chore`    | Manutenção (build, deps, configs) |
+| `perf`     | Melhoria de performance           |
+| `ci`       | Mudanças em pipelines de CI/CD    |
 
 ### Exemplos reais
 
@@ -77,35 +77,22 @@ git commit -m "docs: atualiza README com instruções de instalação"
 git commit -m "refactor: simplifica parser de logs JSON"
 ```
 
-### Exemplos inválidos ❌
-
-```
-ajustes
-fix
-WIP
-corrigindo bug
-```
-
 ---
 
 ## Pull Requests e Code Review
 
 > ⚠️ Nunca aprove sua própria PR em projetos de equipe.
 
-### Pull Request
+### Boas práticas no PR
 
-Um PR é uma proposta formal de merge de uma branch. Boas práticas:
-
-- **Título claro** seguindo o padrão semântico (ex: `feat: adiciona página de login`)
+- **Título claro** seguindo o padrão semântico
 - **Descrição** explicando o que muda e o motivo
 - **Prints** quando a alteração for visual
 
-Exemplo de criação via CLI:
-
 ```bash
 gh pr create \
-  --title "feat: adiciona página de login" \
-  --body "Implementa tela de login com validação de formulário." \
+  --title "feat: adiciona suporte a logs .gz" \
+  --body "Implementa descompressão em memória para arquivos gzip." \
   --base main
 ```
 
@@ -118,10 +105,10 @@ gh pr create \
 
 ---
 
-## Resumo rápido
+## Fluxo Resumido
 
 1. Crie uma branch a partir de `main`
 2. Faça commits semânticos durante o desenvolvimento
-3. Abra um PR com título claro, descrição e prints (se visual)
+3. Abra um PR com título claro e descrição
 4. Aguarde revisão — nunca aprove o próprio PR
 5. Após aprovação, o merge é feito na `main`
