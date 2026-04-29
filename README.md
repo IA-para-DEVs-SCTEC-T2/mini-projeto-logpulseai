@@ -75,7 +75,7 @@ A variável de ambiente `LOGPULSE_API_KEY` tem precedência sobre o arquivo de c
 
 ## Contribuindo
 
-Leia as [diretrizes de contribuição](CONTRIBUTING.md) antes de abrir um PR.
+Leia as [diretrizes de contribuição](.kiro/steering/CONTRIBUTING.md) antes de abrir um PR.
 
 ### 🔒 Validações Automáticas
 
@@ -85,7 +85,6 @@ O projeto possui validações em **duas camadas**:
 - ⚡ **Feedback instantâneo** antes de commit/push
 - ✅ Valida mensagens de commit
 - ✅ Valida nome da branch
-- 📝 [Ativar validações locais](.githooks/README.md)
 
 #### 2️⃣ Validações no GitHub (GitHub Actions)
 - 🔒 **Proteção final** no Pull Request
@@ -93,18 +92,12 @@ O projeto possui validações em **duas camadas**:
 - ✅ **Nome de branches**: Padrão `feature-<nome>` ou `hotfix-<nome>`
 - ✅ **Proteção da branch main**: Exige 2 aprovações antes do merge
 - ⚡ **Execução automática** ao criar/atualizar Pull Request
-- 📝 [Como testar as validações](TESTE-GITHUB-ACTIONS.md)
 
 **Regras principais:**
 - Nunca commite diretamente na `main`
 - Use commits semânticos: `feat:`, `fix:`, `docs:`, `refactor:`
 - Nomes de branch: `feature-<nome>`, `hotfix-<nome>`, `main`, `develop`
 - Todo merge via Pull Request com **2 aprovações mínimas**
-
-📚 Documentação:
-- [Ativar Git Hooks locais](.githooks/README.md)
-- [Workflow Git completo](docs/git-workflow.md)
-- [Configuração de proteção de branch](docs/branch-protection.md)
 
 ## Status
 
