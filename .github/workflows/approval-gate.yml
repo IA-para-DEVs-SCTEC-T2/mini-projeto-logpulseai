@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   approval-check:
-    name: Check PR Approvals (GitFlow)
+    name: Check PR Approvals
     runs-on: ubuntu-latest
     if: github.event.pull_request.base.ref == 'main' || github.event.pull_request.base.ref == 'master' || github.event.pull_request.base.ref == 'develop'
     steps:
