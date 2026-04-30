@@ -1,0 +1,7 @@
+2024-01-15T10:00:00+00:00 INFO Application started
+2024-01-15T10:00:01+00:00 DEBUG Loading configuration
+2024-01-15T10:00:05+00:00 WARNING High memory usage detected
+2024-01-15T10:00:10+00:00 ERROR Database connection failed
+2024-01-15T10:00:11+00:00 ERROR Database connection failed
+2024-01-15T10:00:12+00:00 ERROR Database connection failed
+2024-01-15T10:00:13+00:00 CRITICAL Service unavailable
