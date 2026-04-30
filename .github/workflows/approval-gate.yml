@@ -150,7 +150,7 @@ jobs:
                 `Este PR precisa de pelo menos 1 aprovação de outro colaborador.\n` +
                 `Aprovações atuais: ${approvalCount}/1`
               );
-            } else {
-              console.log('✅ Todas as validações passaram! Merge pode ser realizado.');
+              return;
             }
 
+            console.log('✅ Todas as validações passaram! Merge pode ser realizado.');
