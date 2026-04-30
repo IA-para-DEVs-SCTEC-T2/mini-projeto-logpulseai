@@ -1,0 +1,140 @@
+name: Approval Gate
+
+on:
+  pull_request_review:
+    types: [submitted, dismissed]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  approval-check:
+    name: Check PR Approvals (GitFlow)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify GitFlow branch rules and approvals
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Obter informações do PR
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+            });
+
+            const sourceBranch = pr.head.ref;
+            const targetBranch = pr.base.ref;
+            const prAuthor = pr.user.login;
+
+            console.log('='.repeat(50));
+            console.log('🔀 GitFlow - Validação de Pull Request');
+            console.log('='.repeat(50));
+            console.log(`PR #${context.payload.pull_request.number}: ${pr.title}`);
+            console.log(`Autor: ${prAuthor}`);
+            console.log(`Branch de origem: ${sourceBranch}`);
+            console.log(`Branch de destino: ${targetBranch}`);
+            console.log('='.repeat(50));
+
+            // Validar fluxo GitFlow
+            let isValidFlow = false;
+            let flowDescription = '';
+
+            if (targetBranch === 'main' || targetBranch === 'master') {
+              if (sourceBranch === 'develop') {
+                isValidFlow = true;
+                flowDescription = 'Release: develop → main';
+              } else if (sourceBranch.startsWith('release/')) {
+                isValidFlow = true;
+                flowDescription = 'Release branch → main';
+              } else if (sourceBranch.startsWith('hotfix/')) {
+                isValidFlow = true;
+                flowDescription = 'Hotfix → main';
+              } else {
+                core.setFailed(
+                  `❌ FLUXO GITFLOW INVÁLIDO\n\n` +
+                  `Para merge em '${targetBranch}', apenas estas branches são permitidas:\n` +
+                  `  • develop (release para produção)\n` +
+                  `  • release/* (finalização de release)\n` +
+                  `  • hotfix/* (correção urgente)\n\n` +
+                  `Branch atual: ${sourceBranch}`
+                );
+                return;
+              }
+            } else if (targetBranch === 'develop') {
+              if (sourceBranch.startsWith('feature/')) {
+                isValidFlow = true;
+                flowDescription = 'Feature → develop';
+              } else if (sourceBranch.startsWith('bugfix/')) {
+                isValidFlow = true;
+                flowDescription = 'Bugfix → develop';
+              } else if (sourceBranch.startsWith('release/')) {
+                isValidFlow = true;
+                flowDescription = 'Release merge back → develop';
+              } else if (sourceBranch.startsWith('hotfix/')) {
+                isValidFlow = true;
+                flowDescription = 'Hotfix merge back → develop';
+              } else {
+                core.setFailed(
+                  `❌ FLUXO GITFLOW INVÁLIDO\n\n` +
+                  `Para merge em 'develop', apenas estas branches são permitidas:\n` +
+                  `  • feature/* (nova funcionalidade)\n` +
+                  `  • bugfix/* (correção de bug)\n` +
+                  `  • release/* (merge back após release)\n` +
+                  `  • hotfix/* (merge back após hotfix)\n\n` +
+                  `Branch atual: ${sourceBranch}`
+                );
+                return;
+              }
+            } else {
+              isValidFlow = true;
+              flowDescription = 'Branch não protegida';
+            }
+
+            console.log(`✅ Fluxo GitFlow válido: ${flowDescription}`);
+            console.log('');
+
+            // Buscar todas as reviews do PR
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+            });
+
+            // Mapear reviews mais recentes por usuário
+            const reviewsByUser = {};
+            reviews.forEach(review => {
+              const reviewer = review.user.login;
+              if (!reviewsByUser[reviewer] || 
+                  new Date(review.submitted_at) > new Date(reviewsByUser[reviewer].submitted_at)) {
+                reviewsByUser[reviewer] = review;
+              }
+            });
+
+            // Contar aprovações (excluindo o autor do PR)
+            const approvedReviews = Object.entries(reviewsByUser)
+              .filter(([reviewer, review]) => 
+                review.state === 'APPROVED' && reviewer !== prAuthor
+              );
+
+            const approvalCount = approvedReviews.length;
+            const approvers = approvedReviews.map(([reviewer]) => reviewer);
+
+            console.log('📋 Status de Aprovações');
+            console.log(`Aprovações necessárias: 1`);
+            console.log(`Aprovações recebidas: ${approvalCount}`);
+            
+            if (approvalCount > 0) {
+              console.log(`Aprovado por: ${approvers.join(', ')}`);
+            }
+            console.log('='.repeat(50));
+
+            // Falhar se não houver aprovações suficientes
+            if (approvalCount < 1) {
+              core.setFailed(
+                `❌ APROVAÇÃO NECESSÁRIA\n\n` +
+                `Este PR precisa de pelo menos 1 aprovação de outro colaborador.\n` +
+                `Aprovações atuais: ${approvalCount}/1`
+              );
+            } else {
+              console.log('✅ Todas as validações passaram! Merge pode ser realizado.');
+            }

@@ -73,31 +73,38 @@ format = "json"  # json | plaintext | syslog | auto
 
 A variável de ambiente `LOGPULSE_API_KEY` tem precedência sobre o arquivo de configuração.
 
-## Contribuindo
 
-Leia as [diretrizes de contribuição](.kiro/steering/CONTRIBUTING.md) antes de abrir um PR.
+### � GitFlow - Fluxo de Trabalho
 
-### 🔒 Validações Automáticas
+Este projeto utiliza o **GitFlow** como estratégia de branching. Entenda o fluxo:
+
+#### 📌 Branches Principais
+
+- **`main`**: Código em produção (sempre estável)
+- **`develop`**: Branch de integração para desenvolvimento
+
+### �🔒 Validações Automáticas
 
 O projeto possui validações em **duas camadas**:
 
 #### 1️⃣ Validações Locais (Git Hooks)
 - ⚡ **Feedback instantâneo** antes de commit/push
-- ✅ Valida mensagens de commit
-- ✅ Valida nome da branch
+- ✅ Valida mensagens de commit (semântico)
+- ✅ Valida nome da branch (GitFlow)
 
 #### 2️⃣ Validações no GitHub (GitHub Actions)
 - 🔒 **Proteção final** no Pull Request
-- ✅ **Commits semânticos**: Apenas `feat:`, `fix:`, `docs:` e `refactor:`
-- ✅ **Nome de branches**: Padrão `feature-<nome>` ou `hotfix-<nome>`
-- ✅ **Proteção da branch main**: Exige 1 aprovação antes do merge
+- ✅ **Fluxo GitFlow**: Valida origem e destino das branches
+- ✅ **Commits semânticos**: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`
+- ✅ **Aprovação obrigatória**: Mínimo de 1 aprovação para merge
 - ⚡ **Execução automática** ao criar/atualizar Pull Request
 
 **Regras principais:**
-- Nunca commite diretamente na `main`
-- Use commits semânticos: `feat:`, `fix:`, `docs:`, `refactor:`
-- Nomes de branch: `feature-<nome>`, `hotfix-<nome>`, `main`, `develop`
-- Todo merge via Pull Request com **1 aprovação mínima**
+- ❌ Nunca commite diretamente em `main` ou `develop`
+- ✅ Use commits semânticos: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`
+- ✅ Siga o padrão GitFlow para nomes de branch
+- ✅ Todo merge via Pull Request com **1 aprovação mínima**
+- ✅ Branches `release/*` e `hotfix/*` devem fazer merge back em `develop`
 
 ## Status
 
