@@ -6,6 +6,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
+permissions:
+  pull-requests: read
+  contents: read
+
 jobs:
   approval-check:
     name: Check PR Approvals (GitFlow)
