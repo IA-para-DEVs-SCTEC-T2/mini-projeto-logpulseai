@@ -47,10 +47,10 @@ jobs:
               if (sourceBranch === 'develop') {
                 isValidFlow = true;
                 flowDescription = 'Release: develop → main';
-              } else if (sourceBranch.startsWith('release-') || sourceBranch.startsWith('release/')) {
+              } else if (sourceBranch.startsWith('release/')) {
                 isValidFlow = true;
                 flowDescription = 'Release branch → main';
-              } else if (sourceBranch.startsWith('hotfix-') || sourceBranch.startsWith('hotfix/')) {
+              } else if (sourceBranch.startsWith('hotfix/')) {
                 isValidFlow = true;
                 flowDescription = 'Hotfix → main';
               } else {
@@ -58,33 +58,33 @@ jobs:
                   `❌ FLUXO GITFLOW INVÁLIDO\n\n` +
                   `Para merge em '${targetBranch}', apenas estas branches são permitidas:\n` +
                   `  • develop (release para produção)\n` +
-                  `  • release-* ou release/* (finalização de release)\n` +
-                  `  • hotfix-* ou hotfix/* (correção urgente)\n\n` +
+                  `  • release/* (finalização de release)\n` +
+                  `  • hotfix/* (correção urgente)\n\n` +
                   `Branch atual: ${sourceBranch}`
                 );
                 return;
               }
             } else if (targetBranch === 'develop') {
-              if (sourceBranch.startsWith('feature-') || sourceBranch.startsWith('feature/')) {
+              if (sourceBranch.startsWith('feature/')) {
                 isValidFlow = true;
                 flowDescription = 'Feature → develop';
-              } else if (sourceBranch.startsWith('bugfix-') || sourceBranch.startsWith('bugfix/')) {
+              } else if (sourceBranch.startsWith('bugfix/')) {
                 isValidFlow = true;
                 flowDescription = 'Bugfix → develop';
-              } else if (sourceBranch.startsWith('release-') || sourceBranch.startsWith('release/')) {
+              } else if (sourceBranch.startsWith('release/')) {
                 isValidFlow = true;
                 flowDescription = 'Release merge back → develop';
-              } else if (sourceBranch.startsWith('hotfix-') || sourceBranch.startsWith('hotfix/')) {
+              } else if (sourceBranch.startsWith('hotfix/')) {
                 isValidFlow = true;
                 flowDescription = 'Hotfix merge back → develop';
               } else {
                 core.setFailed(
                   `❌ FLUXO GITFLOW INVÁLIDO\n\n` +
                   `Para merge em 'develop', apenas estas branches são permitidas:\n` +
-                  `  • feature-* ou feature/* (nova funcionalidade)\n` +
-                  `  • bugfix-* ou bugfix/* (correção de bug)\n` +
-                  `  • release-* ou release/* (merge back após release)\n` +
-                  `  • hotfix-* ou hotfix/* (merge back após hotfix)\n\n` +
+                  `  • feature/* (nova funcionalidade)\n` +
+                  `  • bugfix/* (correção de bug)\n` +
+                  `  • release/* (merge back após release)\n` +
+                  `  • hotfix/* (merge back após hotfix)\n\n` +
                   `Branch atual: ${sourceBranch}`
                 );
                 return;

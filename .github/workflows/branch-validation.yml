@@ -23,10 +23,10 @@ jobs:
             exit 0
           fi
           
-          # Valida o padrão: feature-<nome> ou hotfix-<nome>
+          # Valida o padrão: feature/<nome> ou hotfix/<nome>
           # Apenas letras minúsculas, números e hífens no nome
           # Mínimo 3 caracteres no nome após o prefixo
-          if ! echo "$BRANCH_NAME" | grep -qE "^(feature|hotfix)-[a-z0-9-]{3,}$"; then
+          if ! echo "$BRANCH_NAME" | grep -qE "^(feature|hotfix|bugfix|release)/[a-z0-9-]{3,}$"; then
             echo "❌ ERRO: Nome da branch inválido!"
             echo ""
             echo "Branch atual: $BRANCH_NAME"
@@ -35,8 +35,10 @@ jobs:
             echo "📋 PADRÃO ACEITO:"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo ""
-            echo "  feature-<nome-da-tarefa>"
-            echo "  hotfix-<nome-da-tarefa>"
+            echo "  feature/<nome-da-tarefa>"
+            echo "  bugfix/<nome-da-tarefa>"
+            echo "  hotfix/<nome-da-tarefa>"
+            echo "  release/<versao>"
             echo "  main"
             echo "  develop"
             echo ""
@@ -51,21 +53,23 @@ jobs:
             echo ""
             echo "  ✅ main"
             echo "  ✅ develop"
-            echo "  ✅ feature-analise-logs-ia"
-            echo "  ✅ feature-parser-json"
-            echo "  ✅ hotfix-correcao-timeout"
-            echo "  ✅ hotfix-bug-critico-123"
+            echo "  ✅ feature/analise-logs-ia"
+            echo "  ✅ feature/parser-json"
+            echo "  ✅ bugfix/correcao-bug-123"
+            echo "  ✅ hotfix/correcao-timeout"
+            echo "  ✅ hotfix/bug-critico-123"
+            echo "  ✅ release/v1.0.0"
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "❌ EXEMPLOS INVÁLIDOS:"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo ""
-            echo "  ❌ feat/nova-feature (use 'feature-' ao invés de 'feat/')"
-            echo "  ❌ feature-Teste (não use letras maiúsculas)"
-            echo "  ❌ feature-teste_branch (use hífens ao invés de underscores)"
-            echo "  ❌ feature-ab (nome muito curto, mínimo 3 caracteres)"
+            echo "  ❌ feature-nova-feature (use '/' ao invés de '-' após o tipo)"
+            echo "  ❌ feature/Teste (não use letras maiúsculas)"
+            echo "  ❌ feature/teste_branch (use hífens ao invés de underscores)"
+            echo "  ❌ feature/ab (nome muito curto, mínimo 3 caracteres)"
             echo "  ❌ master (use 'main' ou 'develop')"
-            echo "  ❌ ajustes (falta o prefixo 'feature-' ou 'hotfix-')"
+            echo "  ❌ ajustes (falta o prefixo 'feature/' ou 'hotfix/')"
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo ""
