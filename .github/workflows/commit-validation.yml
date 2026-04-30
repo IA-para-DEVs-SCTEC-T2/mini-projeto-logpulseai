@@ -7,7 +7,7 @@ on:
 jobs:
   validate-commits:
     runs-on: ubuntu-latest
-    name: Validar mensagens de commit
+    name: Validate commit messages
     
     steps:
       - name: Checkout código
