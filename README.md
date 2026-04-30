@@ -102,3 +102,4 @@ O projeto possui validações em **duas camadas**:
 ## Status
 
 🚧 Em desenvolvimento ativo
+
