@@ -1,0 +1,7 @@
+[ai]
+model = "gpt-4o"
+# Para LLM local via Ollama, descomente:
+# endpoint = "http://localhost:11434"
+
+[parser]
+format = "auto"  # json | plaintext | syslog | auto
