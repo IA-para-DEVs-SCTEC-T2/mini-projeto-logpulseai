@@ -153,3 +153,4 @@ jobs:
             } else {
               console.log('✅ Todas as validações passaram! Merge pode ser realizado.');
             }
+
