@@ -1,0 +1,104 @@
+name: Require Approval
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - main
+      - master
+      - develop
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  pull-requests: read
+  contents: read
+
+jobs:
+  check-approval:
+    name: Approval Required
+    runs-on: ubuntu-latest
+    # Este job DEVE falhar se não houver aprovação
+    # Quando configurado como required check no Ruleset, bloqueia o merge
+    steps:
+      - name: Check for required approvals
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request?.number || context.payload.review?.pull_request?.number;
+            
+            if (!prNumber) {
+              core.setFailed('❌ Não foi possível identificar o número do PR');
+              return;
+            }
+
+            // Buscar informações do PR
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            const prAuthor = pr.user.login;
+            const targetBranch = pr.base.ref;
+
+            console.log('='.repeat(60));
+            console.log('🔒 Verificação de Aprovação Obrigatória');
+            console.log('='.repeat(60));
+            console.log(`PR #${prNumber}: ${pr.title}`);
+            console.log(`Autor: ${prAuthor}`);
+            console.log(`Branch destino: ${targetBranch}`);
+            console.log('='.repeat(60));
+
+            // Buscar todas as reviews
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            // Pegar a review mais recente de cada revisor
+            const latestReviewByUser = {};
+            reviews.forEach(review => {
+              const reviewer = review.user.login;
+              if (!latestReviewByUser[reviewer] || 
+                  new Date(review.submitted_at) > new Date(latestReviewByUser[reviewer].submitted_at)) {
+                latestReviewByUser[reviewer] = review;
+              }
+            });
+
+            // Contar aprovações válidas (excluindo o autor)
+            const approvals = Object.entries(latestReviewByUser)
+              .filter(([reviewer, review]) => 
+                review.state === 'APPROVED' && reviewer !== prAuthor
+              );
+
+            const approvalCount = approvals.length;
+            const approvers = approvals.map(([reviewer]) => reviewer);
+
+            console.log('📊 Status de Aprovações:');
+            console.log(`   Necessárias: 1`);
+            console.log(`   Recebidas: ${approvalCount}`);
+            
+            if (approvalCount > 0) {
+              console.log(`   Aprovado por: ${approvers.join(', ')}`);
+            } else {
+              console.log(`   ⚠️  Nenhuma aprovação ainda`);
+            }
+            console.log('='.repeat(60));
+
+            // Bloquear se não houver aprovações suficientes
+            if (approvalCount < 1) {
+              core.setFailed(
+                `❌ APROVAÇÃO NECESSÁRIA\n\n` +
+                `Este Pull Request requer pelo menos 1 aprovação de outro colaborador.\n\n` +
+                `Status atual:\n` +
+                `  • Aprovações recebidas: ${approvalCount}/1\n` +
+                `  • Autor do PR: ${prAuthor}\n\n` +
+                `⚠️  O botão de merge permanecerá bloqueado até receber a aprovação necessária.`
+              );
+              return;
+            }
+
+            console.log('✅ Aprovação recebida! Merge pode ser realizado.');
