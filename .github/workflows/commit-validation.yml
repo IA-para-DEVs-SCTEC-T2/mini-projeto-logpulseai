@@ -7,7 +7,7 @@ on:
 jobs:
   validate-commits:
     runs-on: ubuntu-latest
-    name: Validar mensagens de commit
+    name: Validate commit messages
     
     steps:
       - name: Checkout código
@@ -31,6 +31,12 @@ jobs:
           while IFS= read -r commit_msg; do
             # Ignora commits vazios
             if [ -z "$commit_msg" ]; then
+              continue
+            fi
+            
+            # Ignora merge commits (começam com "Merge pull request" ou "Merge branch")
+            if echo "$commit_msg" | grep -qE "^Merge (pull request|branch)"; then
+              echo "⏭️  Ignorando merge commit: $commit_msg"
               continue
             fi
             
