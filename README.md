@@ -74,37 +74,23 @@ format = "json"  # json | plaintext | syslog | auto
 A variável de ambiente `LOGPULSE_API_KEY` tem precedência sobre o arquivo de configuração.
 
 
-### � GitFlow - Fluxo de Trabalho
+## GitHub Flow
 
-Este projeto utiliza o **GitFlow** como estratégia de branching. Entenda o fluxo:
+**Branches:**
+- `main` → protegida, sempre estável
+- `feature/*` → novas funcionalidades
+- `bugfix/*` → correções de bugs
 
-#### 📌 Branches Principais
+**Fluxo:**
+```
+main → feature/nome → PR (1 aprovação) → merge → main
+main → bugfix/nome → PR (1 aprovação) → merge → main
+```
 
-- **`main`**: Código em produção (sempre estável)
-- **`develop`**: Branch de integração para desenvolvimento
-
-### �🔒 Validações Automáticas
-
-O projeto possui validações em **duas camadas**:
-
-#### 1️⃣ Validações Locais (Git Hooks)
-- ⚡ **Feedback instantâneo** antes de commit/push
-- ✅ Valida mensagens de commit (semântico)
-- ✅ Valida nome da branch (GitFlow)
-
-#### 2️⃣ Validações no GitHub (GitHub Actions)
-- 🔒 **Proteção final** no Pull Request
-- ✅ **Fluxo GitFlow**: Valida origem e destino das branches
-- ✅ **Commits semânticos**: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`
-- ✅ **Aprovação obrigatória**: Mínimo de 1 aprovação para merge
-- ⚡ **Execução automática** ao criar/atualizar Pull Request
-
-**Regras principais:**
-- ❌ Nunca commite diretamente em `main` ou `develop`
-- ✅ Use commits semânticos: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`
-- ✅ Siga o padrão GitFlow para nomes de branch
-- ✅ Todo merge via Pull Request com **1 aprovação mínima**
-- ✅ Branches `release/*` e `hotfix/*` devem fazer merge back em `develop`
+**Regras:**
+- ❌ Nunca commite diretamente em `main`
+- ✅ Commits semânticos: `feat:`, `fix:`, `docs:`, `refactor:`
+- ✅ Todo merge via Pull Request com 1 aprovação mínima
 
 ## Status
 
