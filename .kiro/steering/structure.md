@@ -7,11 +7,14 @@ inclusion: always
 ## Estrutura de Pastas
 
 ```
-logpulse-ia/
-├── src/          # Código-fonte principal
-├── tests/        # Testes automatizados
-├── logs/         # Arquivos de log para testes
-└── docs/         # Documentação adicional
+mini-projeto-logpulse-ia/
+├── .github/              # Workflows de CI/CD e configurações do GitHub
+├── .kiro/                # Configurações do Kiro (specs, steering rules)
+├── docs/                 # Documentação adicional
+├── logs/                 # Arquivos de log para testes e exemplos
+├── src/                  # Código-fonte principal
+├── tests/                # Testes automatizados
+└── README.md
 ```
 
 ## GitHub Flow
@@ -27,9 +30,6 @@ main → feature/nome → PR (1 aprovação) → merge → main
 main → bugfix/nome → PR (1 aprovação) → merge → main
 ```
 
-### Comandos
-```bash
-
 ## Commits Semânticos
 
 **Padrão:** `<tipo>: <descrição>`
@@ -38,7 +38,7 @@ main → bugfix/nome → PR (1 aprovação) → merge → main
 
 **Exemplos:**
 ```bash
-git commit -m "feat: adiciona suporte a logs .gz"
-git commit -m "fix: corrige parser JSON"
-git commit -m "docs: atualiza README"
+git commit -m "feat: adiciona nova funcionalidade"
+git commit -m "fix: corrige bug"
+git commit -m "docs: atualiza documentação"
 ```
