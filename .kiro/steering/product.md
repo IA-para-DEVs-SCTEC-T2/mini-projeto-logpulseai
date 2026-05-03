@@ -16,7 +16,7 @@ Desenvolver uma IA que analisa logs brutos (stacktraces, logs de produção) e f
 
 ## Forma de Entrada e Saída
 
-Criar API REST para realizar as validações de logs conforme os objetivos acima destacados. Será disponibilizada a utilização através do FastAPI (Swagger), a fim de facilitar usabilidade e testes. O input de dados poderá ocorrer através de arquivos `.txt` e `.log`, e também poderá ser feito através de texto.
+Criar API Rest para realizar as validações de logs conforme os objetivos acima destacados. Será disponibilizada a utilização através do FastAPI (Swagger), afim de facilitar usabilidade e testes. O input de dados poderá ocorrer através de arquivos `.txt` e `.log`, e também poderá ser feito através de texto.
 
 ## Endpoints
 
@@ -46,12 +46,22 @@ Criar API REST para realizar as validações de logs conforme os objetivos acima
 - Python 3.11+
 - pip instalado
 
-### 4. Roadmap (fora do escopo atual)
+### 4. Roadmap
 - Integração com fontes externas de logs (WildFly, Rancher)
 - Suporte a múltiplos provedores de LLM (OpenAI, Gemini, Claude)
 - Implementação de memória com embeddings
 - Monitoramento de logs em tempo real
 - Interface web para visualização dos diagnósticos
+
+## Tecnologia
+
+- Localmente utilizando o Ollama modelo LLaMA 3.
+- Python 3.11+.
+- Framework FastAPI
+- SQLite
+- Utilização do Drain3 biblioteca python para converter logs em templates.
+- Pydantic (Validação de Schemas e Payload)
+- OpenAI Python SDK (Utilizado em formato drop-in replacement apontando para o servidor local do Ollama)
 
 ## Critérios de Sucesso
 
