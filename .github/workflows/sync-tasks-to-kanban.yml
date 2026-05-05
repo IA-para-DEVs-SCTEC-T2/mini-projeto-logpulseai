@@ -1,0 +1,147 @@
+name: Sync Tasks to Kanban
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.kiro/specs/*/tasks.md'
+  workflow_dispatch:  # Permite execução manual
+
+jobs:
+  sync-tasks:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      issues: write
+      contents: read
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install GitHub CLI
+        run: |
+          type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt update
+          sudo apt install gh -y
+      
+      - name: Create issues from tasks.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT_URL: https://github.com/orgs/IA-para-DEVs-SCTEC-T2/projects/7
+        run: |
+          echo "🚀 Criando issues a partir do tasks.md..."
+          
+          # Extrair tarefas principais do tasks.md
+          TASKS_FILE=".kiro/specs/logpulse-ia/tasks.md"
+          
+          if [ ! -f "$TASKS_FILE" ]; then
+            echo "❌ Arquivo tasks.md não encontrado"
+            exit 1
+          fi
+          
+          # Função para criar issue e adicionar ao projeto
+          create_and_add_issue() {
+            local task_number=$1
+            local task_title=$2
+            local is_optional=$3
+            
+            # Montar título da issue
+            local issue_title="[$task_number] $task_title"
+            
+            # Montar corpo da issue
+            local issue_body="## Tarefa $task_number: $task_title
+
+**Spec:** logpulse-ia
+
+### Descrição
+Esta tarefa faz parte do plano de implementação do LogPulse IA.
+
+### Subtarefas
+Veja o arquivo \`.kiro/specs/logpulse-ia/tasks.md\` para detalhes completos das subtarefas.
+
+### Referências
+- [Design Document](.kiro/specs/logpulse-ia/design.md)
+- [Requirements](.kiro/specs/logpulse-ia/requirements.md)
+- [Tasks](.kiro/specs/logpulse-ia/tasks.md)
+"
+            
+            # Definir labels
+            local labels="logpulse-ia,feature"
+            if [ "$is_optional" = "true" ]; then
+              labels="$labels,optional"
+            fi
+            
+            echo "📝 Criando issue: $issue_title"
+            
+            # Criar issue e capturar URL
+            local issue_url=$(gh issue create \
+              --title "$issue_title" \
+              --body "$issue_body" \
+              --label "$labels" \
+              --repo ${{ github.repository }} 2>&1 | grep -o 'https://[^ ]*')
+            
+            if [ -n "$issue_url" ]; then
+              echo "✅ Issue criada: $issue_url"
+              
+              # Adicionar ao projeto usando a action
+              echo "📌 Adicionando ao projeto..."
+              # A action add-to-project será executada automaticamente pelo trigger
+            else
+              echo "⚠️  Erro ao criar issue"
+            fi
+            
+            sleep 0.5  # Delay para não sobrecarregar API
+          }
+          
+          # Extrair tarefas principais (formato: - [ ] 1. Título)
+          grep -E "^- \[ \](\*)? [0-9]+\. " "$TASKS_FILE" | while IFS= read -r line; do
+            # Extrair número da tarefa
+            task_number=$(echo "$line" | sed -E 's/^- \[ \](\*)? ([0-9]+)\. .*/\2/')
+            
+            # Extrair título
+            task_title=$(echo "$line" | sed -E 's/^- \[ \](\*)? [0-9]+\. (.*)/\2/')
+            
+            # Verificar se é opcional
+            is_optional="false"
+            if echo "$line" | grep -q '\*'; then
+              is_optional="true"
+            fi
+            
+            # Verificar se issue já existe
+            existing_issue=$(gh issue list \
+              --repo ${{ github.repository }} \
+              --label "logpulse-ia" \
+              --state all \
+              --search "[$task_number]" \
+              --json number \
+              --jq '.[0].number' 2>/dev/null || echo "")
+            
+            if [ -n "$existing_issue" ]; then
+              echo "⏭️  Issue #$existing_issue já existe para tarefa $task_number"
+            else
+              create_and_add_issue "$task_number" "$task_title" "$is_optional"
+            fi
+          done
+          
+          echo ""
+          echo "======================================================================"
+          echo "✅ Sincronização concluída!"
+          echo "🔗 Visualize em: $PROJECT_URL"
+      
+      - name: Add issues to project
+        uses: actions/add-to-project@v0.5.0
+        with:
+          project-url: https://github.com/orgs/IA-para-DEVs-SCTEC-T2/projects/7
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          labeled: logpulse-ia
+          label-operator: OR
