@@ -51,19 +51,13 @@ jobs:
           create_issue() {
             local task_num=$1
             local task_title=$2
-            local is_opt=$3
             
             local title="[$task_num] $task_title"
             local body="Tarefa $task_num: $task_title - Spec: logpulse-ia - Veja tasks.md para detalhes"
-            local labels="logpulse-ia,feature"
-            
-            if [ "$is_opt" = "true" ]; then
-              labels="$labels,optional"
-            fi
             
             echo "Criando issue: $title"
             
-            gh issue create --title "$title" --body "$body" --label "$labels" --repo ${{ github.repository }} || echo "Erro ao criar issue"
+            gh issue create --title "$title" --body "$body" --repo ${{ github.repository }} || echo "Erro ao criar issue"
             
             sleep 0.5
           }
@@ -71,18 +65,13 @@ jobs:
           grep -E "^- \[ \](\*)? [0-9]+\. " "$TASKS_FILE" | while IFS= read -r line; do
             task_num=$(echo "$line" | sed -E 's/^- \[ \](\*)? ([0-9]+)\. .*/\2/')
             task_title=$(echo "$line" | sed -E 's/^- \[ \](\*)? [0-9]+\. (.*)/\2/')
-            is_opt="false"
             
-            if echo "$line" | grep -q '\*'; then
-              is_opt="true"
-            fi
-            
-            existing=$(gh issue list --repo ${{ github.repository }} --label "logpulse-ia" --state all --search "[$task_num]" --json number --jq '.[0].number' 2>/dev/null || echo "")
+            existing=$(gh issue list --repo ${{ github.repository }} --state all --search "[$task_num]" --json number --jq '.[0].number' 2>/dev/null || echo "")
             
             if [ -n "$existing" ]; then
               echo "Issue ja existe para tarefa $task_num"
             else
-              create_issue "$task_num" "$task_title" "$is_opt"
+              create_issue "$task_num" "$task_title"
             fi
           done
           
@@ -93,5 +82,3 @@ jobs:
         with:
           project-url: https://github.com/orgs/IA-para-DEVs-SCTEC-T2/projects/7
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          labeled: logpulse-ia
-          label-operator: OR
