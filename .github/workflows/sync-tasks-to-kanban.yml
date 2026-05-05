@@ -114,12 +114,87 @@ jobs:
             
             echo "Criando issue: $title"
             
-            gh issue create --title "$title" --body "$body" --repo ${{ github.repository }} || echo "Erro ao criar issue"
+            local issue_number=$(gh issue create --title "$title" --body "$body" --repo ${{ github.repository }} --json number --jq '.number' 2>/dev/null)
+            
+            if [ -n "$issue_number" ]; then
+              echo "Issue #$issue_number criada com sucesso"
+              echo "$task_num:$issue_number" >> /tmp/task_issues.txt
+            else
+              echo "Erro ao criar issue"
+            fi
             
             sleep 0.5
           }
           
-          # Extrai tarefas principais e seus detalhes estruturados
+          create_subissue() {
+            local parent_issue=$1
+            local subtask_num=$2
+            local subtask_title=$3
+            local subtask_description=$4
+            local subtask_acceptance=$5
+            local subtask_estimate=$6
+            local subtask_requirements=$7
+            
+            local title="[$subtask_num] $subtask_title"
+            
+            # Monta o corpo da sub-issue
+            local body="## 📋 Subtarefa $subtask_num: $subtask_title
+          
+          **Tarefa Principal:** #$parent_issue
+          
+          ---
+          
+          ## 📝 Descrição
+          
+          $subtask_description
+          
+          ---
+          
+          ## ✅ Critérios de Aceitação
+          
+          $subtask_acceptance
+          
+          ---
+          
+          ## ⏱️ Estimativa
+          
+          $subtask_estimate
+          
+          ---
+          
+          ## 📚 Requisitos
+          
+          $subtask_requirements
+          
+          ---
+          
+          **Criado automaticamente pelo workflow sync-tasks-to-kanban**"
+            
+            echo "  Criando sub-issue: $title"
+            
+            local subissue_number=$(gh issue create --title "$title" --body "$body" --repo ${{ github.repository }} --json number --jq '.number' 2>/dev/null)
+            
+            if [ -n "$subissue_number" ]; then
+              echo "  Sub-issue #$subissue_number criada"
+              
+              # Adiciona comentário na issue principal linkando a sub-issue
+              gh issue comment "$parent_issue" --body "➕ Sub-tarefa criada: #$subissue_number - $subtask_title" --repo ${{ github.repository }} 2>/dev/null || true
+              
+              # Adiciona comentário na sub-issue linkando a principal
+              gh issue comment "$subissue_number" --body "⬆️ Tarefa principal: #$parent_issue" --repo ${{ github.repository }} 2>/dev/null || true
+            else
+              echo "  Erro ao criar sub-issue"
+            fi
+            
+            sleep 0.5
+          }
+          
+          # Limpa arquivo temporário de mapeamento
+          rm -f /tmp/task_issues.txt
+          touch /tmp/task_issues.txt
+          
+          # PASSO 1: Extrai e cria tarefas principais
+          echo "=== PASSO 1: Criando tarefas principais ==="
           awk '
           BEGIN { 
             in_task = 0
@@ -154,8 +229,9 @@ jobs:
             next
           }
           
-          # Detecta subtarefa (ignora - não queremos criar issues para subtarefas)
+          # Detecta subtarefa (ignora no primeiro passo)
           /^  - \[ \](\*)? [0-9]+\.[0-9]+/ {
+            in_acceptance = 0
             next
           }
           
@@ -177,6 +253,14 @@ jobs:
             next
           }
           
+          # Detecta início do Definition of Done (para parar de capturar acceptance)
+          /^  - \*\*Definition of Done:\*\*/ {
+            if (in_task == 1) {
+              in_acceptance = 0
+            }
+            next
+          }
+          
           # Captura critérios de aceitação (linhas com ✅)
           /^    - ✅/ {
             if (in_task == 1 && in_acceptance == 1) {
@@ -187,6 +271,11 @@ jobs:
                 acceptance = acceptance "\n" $0
               }
             }
+            next
+          }
+          
+          # Ignora linhas do Definition of Done
+          /^    - \[ \]/ {
             next
           }
           
@@ -249,10 +338,287 @@ jobs:
             existing=$(gh issue list --repo ${{ github.repository }} --state all --search "[$task_num]" --json number --jq '.[0].number' 2>/dev/null || echo "")
             
             if [ -n "$existing" ]; then
-              echo "Issue ja existe para tarefa $task_num"
+              echo "Issue ja existe para tarefa $task_num (#$existing)"
+              echo "$task_num:$existing" >> /tmp/task_issues.txt
             else
               create_issue "$task_num" "$task_title" "$description" "$acceptance" "$dependencies" "$estimate" "$requirements"
             fi
           done
+          
+          echo ""
+          echo "=== PASSO 2: Criando subtarefas ==="
+          
+          # PASSO 2: Extrai e cria subtarefas vinculadas às tarefas principais
+          awk '
+          BEGIN {
+            in_subtask = 0
+            parent_num = ""
+            subtask_num = ""
+            subtask_title = ""
+            description = ""
+            acceptance = ""
+            dod = ""
+            estimate = ""
+            requirements = ""
+            in_acceptance = 0
+            in_dod = 0
+          }
+          
+          # Detecta tarefa principal para saber o parent
+          /^- \[ \](\*)? [0-9]+\. / {
+            match($0, /^- \[ \](\*)? ([0-9]+)\. (.*)/, arr)
+            parent_num = arr[2]
+            in_subtask = 0
+            next
+          }
+          
+          # Detecta subtarefa
+          /^  - \[ \](\*)? [0-9]+\.[0-9]+/ {
+            # Se já estava processando uma subtarefa, imprime antes de começar nova
+            if (in_subtask == 1 && subtask_num != "") {
+              print parent_num "|||" subtask_num "|||" subtask_title "|||" description "|||" acceptance "|||" dod "|||" estimate "|||" requirements
+            }
+            
+            # Extrai número e título da subtarefa
+            match($0, /^  - \[ \](\*)? ([0-9]+\.[0-9]+) (.*)/, arr)
+            subtask_num = arr[2]
+            subtask_title = arr[3]
+            description = ""
+            acceptance = ""
+            dod = ""
+            estimate = ""
+            requirements = ""
+            in_subtask = 1
+            in_acceptance = 0
+            in_dod = 0
+            next
+          }
+          
+          # Detecta descrição da subtarefa
+          /^    - \*\*Descrição:\*\*/ {
+            if (in_subtask == 1) {
+              sub(/^    - \*\*Descrição:\*\* /, "", $0)
+              description = $0
+              in_acceptance = 0
+              in_dod = 0
+            }
+            next
+          }
+          
+          # Detecta início dos critérios de aceitação da subtarefa
+          /^    - \*\*Critérios de Aceitação:\*\*/ {
+            if (in_subtask == 1) {
+              in_acceptance = 1
+              in_dod = 0
+            }
+            next
+          }
+          
+          # Detecta início do Definition of Done da subtarefa
+          /^    - \*\*Definition of Done:\*\*/ {
+            if (in_subtask == 1) {
+              in_acceptance = 0
+              in_dod = 1
+            }
+            next
+          }
+          
+          # Captura critérios de aceitação da subtarefa (linhas com ✅)
+          /^      - ✅/ {
+            if (in_subtask == 1 && in_acceptance == 1) {
+              sub(/^      - ✅ /, "- ", $0)
+              if (acceptance == "") {
+                acceptance = $0
+              } else {
+                acceptance = acceptance "\n" $0
+              }
+            }
+            next
+          }
+          
+          # Captura Definition of Done da subtarefa (linhas com [ ])
+          /^      - \[ \]/ {
+            if (in_subtask == 1 && in_dod == 1) {
+              sub(/^      /, "", $0)
+              if (dod == "") {
+                dod = $0
+              } else {
+                dod = dod "\n" $0
+              }
+            }
+            next
+          }
+          
+          # Detecta estimativa da subtarefa
+          /^    - \*\*Estimativa:\*\*/ {
+            if (in_subtask == 1) {
+              sub(/^    - \*\*Estimativa:\*\* /, "", $0)
+              estimate = $0
+              in_acceptance = 0
+              in_dod = 0
+            }
+            next
+          }
+          
+          # Detecta requisitos da subtarefa
+          /^    - _Requisitos:/ {
+            if (in_subtask == 1) {
+              sub(/^    - _Requisitos: /, "", $0)
+              sub(/_$/, "", $0)
+              requirements = $0
+              in_acceptance = 0
+              in_dod = 0
+            }
+            next
+          }
+          
+          # Nova tarefa principal ou seção encerra subtarefa
+          /^- \[ \](\*)? [0-9]+\. / || /^$/ || /^##/ {
+            if (in_subtask == 1 && subtask_num != "") {
+              print parent_num "|||" subtask_num "|||" subtask_title "|||" description "|||" acceptance "|||" dod "|||" estimate "|||" requirements
+              in_subtask = 0
+              subtask_num = ""
+            }
+          }
+          
+          END {
+            if (in_subtask == 1 && subtask_num != "") {
+              print parent_num "|||" subtask_num "|||" subtask_title "|||" description "|||" acceptance "|||" dod "|||" estimate "|||" requirements
+            }
+          }
+          ' "$TASKS_FILE" | while IFS='|||' read -r parent_num subtask_num subtask_title description acceptance dod estimate requirements; do
+            
+            # Busca o número da issue principal no mapeamento
+            parent_issue=$(grep "^$parent_num:" /tmp/task_issues.txt | cut -d: -f2)
+            
+            if [ -z "$parent_issue" ]; then
+              echo "  ⚠️  Issue principal não encontrada para tarefa $parent_num (subtarefa $subtask_num)"
+              continue
+            fi
+            
+            # Verifica se sub-issue já existe
+            existing=$(gh issue list --repo ${{ github.repository }} --state all --search "[$subtask_num]" --json number --jq '.[0].number' 2>/dev/null || echo "")
+            
+            if [ -n "$existing" ]; then
+              echo "  Sub-issue ja existe para subtarefa $subtask_num (#$existing)"
+            else
+              create_subissue "$parent_issue" "$subtask_num" "$subtask_title" "$description" "$acceptance" "$dod" "$estimate" "$requirements"
+            fi
+          done
+          /^- \[ \](\*)? [0-9]+\. / {
+            match($0, /^- \[ \](\*)? ([0-9]+)\. (.*)/, arr)
+            parent_num = arr[2]
+            in_subtask = 0
+            next
+          }
+          
+          # Detecta subtarefa
+          /^  - \[ \](\*)? [0-9]+\.[0-9]+/ {
+            # Se já estava processando uma subtarefa, imprime antes de começar nova
+            if (in_subtask == 1 && subtask_num != "") {
+              print parent_num "|||" subtask_num "|||" subtask_title "|||" description "|||" acceptance "|||" estimate "|||" requirements
+            }
+            
+            # Extrai número e título da subtarefa
+            match($0, /^  - \[ \](\*)? ([0-9]+\.[0-9]+) (.*)/, arr)
+            subtask_num = arr[2]
+            subtask_title = arr[3]
+            description = ""
+            acceptance = ""
+            estimate = ""
+            requirements = ""
+            in_subtask = 1
+            in_acceptance = 0
+            next
+          }
+          
+          # Detecta descrição da subtarefa
+          /^    - \*\*Descrição:\*\*/ {
+            if (in_subtask == 1) {
+              sub(/^    - \*\*Descrição:\*\* /, "", $0)
+              description = $0
+              in_acceptance = 0
+            }
+            next
+          }
+          
+          # Detecta início dos critérios de aceitação da subtarefa
+          /^    - \*\*Critérios de Aceitação:\*\*/ {
+            if (in_subtask == 1) {
+              in_acceptance = 1
+            }
+            next
+          }
+          
+          # Captura critérios de aceitação da subtarefa
+          /^      - ✅/ {
+            if (in_subtask == 1 && in_acceptance == 1) {
+              sub(/^      - ✅ /, "- ", $0)
+              if (acceptance == "") {
+                acceptance = $0
+              } else {
+                acceptance = acceptance "\n" $0
+              }
+            }
+            next
+          }
+          
+          # Detecta estimativa da subtarefa
+          /^    - \*\*Estimativa:\*\*/ {
+            if (in_subtask == 1) {
+              sub(/^    - \*\*Estimativa:\*\* /, "", $0)
+              estimate = $0
+              in_acceptance = 0
+            }
+            next
+          }
+          
+          # Detecta requisitos da subtarefa
+          /^    - _Requisitos:/ {
+            if (in_subtask == 1) {
+              sub(/^    - _Requisitos: /, "", $0)
+              sub(/_$/, "", $0)
+              requirements = $0
+              in_acceptance = 0
+            }
+            next
+          }
+          
+          # Nova tarefa principal ou seção encerra subtarefa
+          /^- \[ \](\*)? [0-9]+\. / || /^$/ || /^##/ {
+            if (in_subtask == 1 && subtask_num != "") {
+              print parent_num "|||" subtask_num "|||" subtask_title "|||" description "|||" acceptance "|||" estimate "|||" requirements
+              in_subtask = 0
+              subtask_num = ""
+            }
+          }
+          
+          END {
+            if (in_subtask == 1 && subtask_num != "") {
+              print parent_num "|||" subtask_num "|||" subtask_title "|||" description "|||" acceptance "|||" estimate "|||" requirements
+            }
+          }
+          ' "$TASKS_FILE" | while IFS='|||' read -r parent_num subtask_num subtask_title description acceptance estimate requirements; do
+            
+            # Busca o número da issue principal no mapeamento
+            parent_issue=$(grep "^$parent_num:" /tmp/task_issues.txt | cut -d: -f2)
+            
+            if [ -z "$parent_issue" ]; then
+              echo "  ⚠️  Issue principal não encontrada para tarefa $parent_num (subtarefa $subtask_num)"
+              continue
+            fi
+            
+            # Verifica se sub-issue já existe
+            existing=$(gh issue list --repo ${{ github.repository }} --state all --search "[$subtask_num]" --json number --jq '.[0].number' 2>/dev/null || echo "")
+            
+            if [ -n "$existing" ]; then
+              echo "  Sub-issue ja existe para subtarefa $subtask_num (#$existing)"
+            else
+              create_subissue "$parent_issue" "$subtask_num" "$subtask_title" "$description" "$acceptance" "$dod" "$estimate" "$requirements"
+            fi
+          done
+          
+          # Limpa arquivo temporário
+          rm -f /tmp/task_issues.txt
           
           echo "Sincronizacao concluida!"
