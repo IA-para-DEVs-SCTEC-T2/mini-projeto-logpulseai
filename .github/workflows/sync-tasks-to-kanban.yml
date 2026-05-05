@@ -67,7 +67,7 @@ jobs:
 Esta tarefa faz parte do plano de implementação do LogPulse IA.
 
 ### Subtarefas
-Veja o arquivo \`.kiro/specs/logpulse-ia/tasks.md\` para detalhes completos das subtarefas.
+Veja o arquivo .kiro/specs/logpulse-ia/tasks.md para detalhes completos das subtarefas.
 
 ### Referências
 - [Design Document](.kiro/specs/logpulse-ia/design.md)
