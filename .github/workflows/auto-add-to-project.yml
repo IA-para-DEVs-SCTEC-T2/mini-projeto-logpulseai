@@ -1,0 +1,22 @@
+name: Auto-add Issues to Project
+
+on:
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  add-to-project:
+    runs-on: ubuntu-latest
+    
+    # Só executa se a issue tiver a label "logpulse-ia"
+    if: contains(github.event.issue.labels.*.name, 'logpulse-ia')
+    
+    steps:
+      - name: Add issue to project
+        uses: actions/add-to-project@v0.5.0
+        with:
+          # URL do projeto da organização IA-para-DEVs-SCTEC-T2
+          project-url: https://github.com/orgs/IA-para-DEVs-SCTEC-T2/projects/7
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          labeled: logpulse-ia
+          label-operator: OR
