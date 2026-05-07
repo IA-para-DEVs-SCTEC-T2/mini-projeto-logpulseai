@@ -60,3 +60,42 @@ pensamos no uso de IA nativo, voce analisou os steering antes de montar o requir
 
 **Resultado:**
 Releitura dos steering files revelou divergências. Requirements reescrito com: Ollama + LLaMA 3 como IA nativa, OpenAI SDK como drop-in replacement, SQLite para persistência, Drain3 para parsing, endpoints corretos (`api/v1/logs/...`), AIEngine sempre acionado, cobertura mínima de 30% e validação via Pydantic.
+
+
+---
+
+## P02-04 — Execução de tarefas de qualidade de código (black, isort, ruff, mypy)
+
+**Data:** 2025-05-07
+**Ferramenta:** Kiro
+
+**Prompt:**
+```
+Peguei 3 tasks, vou descrever abaixo. Com base nos specs e steerings desenvolva cada feature 
+e grave cada uma no commit e branch correspondente. Lembro que devemos seguir os padrões de 
+branch previamente configurados no .github. Cada prompt que eu fizer, incluindo esse deverá 
+ser documentado tal qual o já existente em docs > prompt.
+
+task: Configurar black, isort e ruff
+Tarefa Principal: #302
+Descrição: Configurar ferramentas de formatação e linting
+Critérios de Aceitação: (conforme tasks.md 17.2)
+Estimativa: 1h
+Requisitos: RNF-05
+
+task: Configurar mypy em modo strict
+Tarefa Principal: #302
+Descrição: Configurar mypy para tipagem estática rigorosa
+Critérios de Aceitação: (conforme tasks.md 17.1)
+Estimativa: 1h
+Requisitos: RNF-05
+```
+
+**Resultado:**
+Configuração de ferramentas de qualidade de código no pyproject.toml com:
+- mypy em modo strict (python_version = "3.11")
+- black com line-length = 100
+- isort com profile = "black"
+- ruff com select = ["E", "F", "I"]
+- pytest e hypothesis para testes
+- Validação de todas as ferramentas passando sem erros
