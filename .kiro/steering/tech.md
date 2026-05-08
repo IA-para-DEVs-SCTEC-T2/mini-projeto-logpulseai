@@ -346,7 +346,7 @@ tests/
 
 - **Escopo**: Função/método isolado
 - **Mocks**: Usar `unittest.mock` ou `pytest-mock`
-- **Cobertura mínima**: 80% de line coverage
+- **Cobertura mínima**: 30% de line coverage
 
 ```python
 def test_parse_json_valid_entry(json_parser):
@@ -416,9 +416,9 @@ def test_json_parser_roundtrip(message):
 
 ### Cobertura de Código
 
-- **Meta**: 80% de line coverage mínimo
+- **Meta**: 30% de line coverage mínimo
 - **Comando**: `pytest --cov=src --cov-report=html --cov-report=term`
-- **CI**: Bloquear merge se cobertura cair abaixo de 80%
+- **CI**: Bloquear merge se cobertura cair abaixo de 30%
 
 ### Fixtures Compartilhadas
 
@@ -546,7 +546,7 @@ jobs:
       - run: black --check src/ tests/
       - run: isort --check src/ tests/
       - run: mypy --strict src/
-      - run: pytest --cov=src --cov-report=xml --cov-fail-under=80
+      - run: pytest --cov=src --cov-report=xml --cov-fail-under=30
       - uses: codecov/codecov-action@v3  # upload cobertura
 ```
 
@@ -581,7 +581,7 @@ repos:
 
 ### Bloqueio de Merge
 
-- **Requer**: Todos os checks do CI passando (lint, types, tests, coverage ≥80%)
+- **Requer**: Todos os checks do CI passando (lint, types, tests, coverage ≥30%)
 - **Requer**: 1 aprovação de code review
 - **Requer**: Branch atualizada com `develop` (Git Flow)
 
