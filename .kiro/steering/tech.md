@@ -583,7 +583,7 @@ repos:
 
 - **Requer**: Todos os checks do CI passando (lint, types, tests, coverage ≥30%)
 - **Requer**: 1 aprovação de code review
-- **Requer**: Branch atualizada com `develop` (Git Flow)
+- **Requer**: Branch atualizada com `main`
 
 ---
 
