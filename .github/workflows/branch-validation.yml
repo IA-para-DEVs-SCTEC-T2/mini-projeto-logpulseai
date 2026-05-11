@@ -18,29 +18,26 @@ jobs:
           echo ""
           
           # Branches protegidas permitidas
-          if [[ "$BRANCH_NAME" == "main" || "$BRANCH_NAME" == "develop" ]]; then
+          if [[ "$BRANCH_NAME" == "main" ]]; then
             echo "✅ Branch protegida permitida: $BRANCH_NAME"
             exit 0
           fi
           
-          # Valida o padrão: feature/<nome> ou hotfix/<nome>
+          # Valida o padrão: feature/<nome> ou bugfix/<nome>
           # Apenas letras minúsculas, números e hífens no nome
           # Mínimo 3 caracteres no nome após o prefixo
-          if ! echo "$BRANCH_NAME" | grep -qE "^(feature|hotfix|bugfix|release)/[a-z0-9-]{3,}$"; then
+          if ! echo "$BRANCH_NAME" | grep -qE "^(feature|bugfix)/[a-z0-9-]{3,}$"; then
             echo "❌ ERRO: Nome da branch inválido!"
             echo ""
             echo "Branch atual: $BRANCH_NAME"
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "📋 PADRÃO ACEITO:"
+            echo "📋 PADRÃO ACEITO (GitHub Flow):"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo ""
             echo "  feature/<nome-da-tarefa>"
             echo "  bugfix/<nome-da-tarefa>"
-            echo "  hotfix/<nome-da-tarefa>"
-            echo "  release/<versao>"
             echo "  main"
-            echo "  develop"
             echo ""
             echo "  • Nome da tarefa: mínimo 3 caracteres"
             echo "  • Apenas letras minúsculas, números e hífens"
@@ -52,24 +49,24 @@ jobs:
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo ""
             echo "  ✅ main"
-            echo "  ✅ develop"
             echo "  ✅ feature/analise-logs-ia"
             echo "  ✅ feature/parser-json"
             echo "  ✅ bugfix/correcao-bug-123"
-            echo "  ✅ hotfix/correcao-timeout"
-            echo "  ✅ hotfix/bug-critico-123"
-            echo "  ✅ release/v1.0.0"
+            echo "  ✅ bugfix/correcao-timeout"
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "❌ EXEMPLOS INVÁLIDOS:"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo ""
+            echo "  ❌ develop (não existe mais no GitHub Flow)"
+            echo "  ❌ hotfix/bug-critico (use bugfix/ ao invés de hotfix/)"
+            echo "  ❌ release/v1.0.0 (não existe mais no GitHub Flow)"
             echo "  ❌ feature-nova-feature (use '/' ao invés de '-' após o tipo)"
             echo "  ❌ feature/Teste (não use letras maiúsculas)"
             echo "  ❌ feature/teste_branch (use hífens ao invés de underscores)"
             echo "  ❌ feature/ab (nome muito curto, mínimo 3 caracteres)"
-            echo "  ❌ master (use 'main' ou 'develop')"
-            echo "  ❌ ajustes (falta o prefixo 'feature/' ou 'hotfix/')"
+            echo "  ❌ master (use 'main')"
+            echo "  ❌ ajustes (falta o prefixo 'feature/' ou 'bugfix/')"
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo ""

@@ -6,45 +6,68 @@ inclusion: always
 
 ## Visão Geral
 
-**LogPulse IA** é uma ferramenta CLI e biblioteca Python para ingestão, análise e investigação inteligente de logs. O objetivo é reduzir o MTTR (Mean Time To Resolution) de incidentes em produção com suporte de IA.
+Desenvolver uma IA que analisa logs brutos (stacktraces, logs de produção) e fornece diagnóstico inteligente de problemas, sugerindo causas raiz e correções.
 
-## Funcionalidades
+## Objetivos
 
-- Leitura de logs de arquivos locais (`.log`, `.txt`, `.gz`) e via stdin/pipe
-- Parsing automático de JSON estruturado, Apache/Nginx, Syslog e formato livre
-- Detecção automática de anomalias e spikes de erros
-- Investigação com IA: hipóteses de causa raiz e sugestões de ação
-- Suporte a LLMs locais via Ollama e APIs externas (OpenAI)
-- CLI intuitiva: `logpulse analyze <fonte>`
+- Reduzir tempo de investigação de incidentes (MTTR)
+- Automatizar análise de logs complexos
+- Fornecer sugestões acionáveis para desenvolvedores
 
-## Comandos Principais
+## Forma de Entrada e Saída
 
-```bash
-logpulse analyze <fonte>               # analisa logs de arquivo ou stdin (-)
-logpulse analyze <fonte> --ai          # análise com suporte de IA
-logpulse analyze <fonte> --follow      # monitoramento contínuo (tail -f)
-logpulse analyze <fonte> --output json # saída em JSON
-logpulse --help                        # documentação de uso
-```
+Criar API Rest para realizar as validações de logs conforme os objetivos acima destacados. Será disponibilizada a utilização através do FastAPI (Swagger), afim de facilitar usabilidade e testes. O input de dados poderá ocorrer através de arquivos `.txt` e `.log`, e também poderá ser feito através de texto.
 
-## Códigos de Saída da CLI
+## Endpoints
 
-| Código | Significado                                 |
-|--------|---------------------------------------------|
-| `0`    | Análise concluída sem erros                 |
-| `1`    | Erro de entrada ou configuração             |
-| `2`    | Anomalias críticas detectadas no Log_Stream |
+| Método   | Rota                | Descrição                  |
+|----------|---------------------|----------------------------|
+| `POST`   | `api/v1/logs/file`  | Envio de log via arquivo   |
+| `POST`   | `api/v1/logs/text`  | Envio de log via texto     |
+| `DELETE` | `api/v1/logs/{id}`  | Remoção de um log pelo ID  |
+| `GET`    | `api/v1/logs`       | Listagem paginada de logs  |
+| `GET`    | `api/v1/logs/{id}`  | Consulta de um log pelo ID |
 
-## Configuração
+## Funcionalidades Principais
 
-O sistema carrega configurações de `logpulse.toml` no diretório atual ou em `~/.config/logpulse/logpulse.toml`. A variável de ambiente `LOGPULSE_API_KEY` tem precedência sobre o arquivo de configuração.
+### 1. Análise de Logs
+- Receber logs brutos (stacktrace, logs de produção)
+- Identificar padrões de erro
+- Extrair informações relevantes (timestamp, severity, mensagens)
+- Resumir o problema de forma clara
 
-```toml
-[ai]
-model = "gpt-4o"
-# ou para LLM local:
-# endpoint = "http://localhost:11434"
+### 2. Diagnóstico Inteligente
+- Sugerir causa raiz do erro
+- Apontar linha provável do erro no código
+- Sugerir correção ou próximos passos
 
-[parser]
-format = "json"  # json | plaintext | syslog | auto
-```
+### 3. Execução Local
+- Ollama com modelo LLaMA 3 na porta padrão 11434
+- Python 3.11+
+- pip instalado
+
+### 4. Roadmap
+- Integração com fontes externas de logs (WildFly, Rancher)
+- Suporte a múltiplos provedores de LLM (OpenAI, Gemini, Claude)
+- Implementação de memória com embeddings
+- Monitoramento de logs em tempo real
+- Interface web para visualização dos diagnósticos
+
+## Tecnologia
+
+- Localmente utilizando o Ollama modelo LLaMA 3.
+- Python 3.11+.
+- Framework FastAPI
+- SQLite
+- Utilização do Drain3 biblioteca python para converter logs em templates.
+- Pydantic (Validação de Schemas e Payload)
+- OpenAI Python SDK (Utilizado em formato drop-in replacement apontando para o servidor local do Ollama)
+
+## Critérios de Sucesso
+
+- Deve aceitar logs via API
+- Deve retornar uma resposta estruturada em JSON
+- Deve ter resposta coerente, clara e com qualidade técnica
+- Deve gerar diagnóstico de causa provável
+- Deve propor ação prática
+- Deve ter cobertura de testes de 30%
