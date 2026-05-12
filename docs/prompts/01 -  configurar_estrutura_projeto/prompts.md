@@ -56,3 +56,4 @@ Tarefa concluída com sucesso. Verificações realizadas:
 4. **Arquivo .env.example**: Verificado com todas as variáveis documentadas:
    - OLLAMA_URL, DATABASE_PATH, LOG_LEVEL
    - Configurações adicionais: API_PORT, OLLAMA_MODEL, OLLAMA_TIMEOUT, MAX_FILE_SIZE, MAX_TEXT_SIZE, DRAIN_DEPTH, DRAIN_SIM_TH, CORS_ORIGINS
+
