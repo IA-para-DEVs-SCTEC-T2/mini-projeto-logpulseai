@@ -6,7 +6,7 @@ Este documento contém as tarefas de implementação para o LogPulse IA, uma API
 
 ## Tarefas
 
-- [ ] 1. Configurar estrutura do projeto e dependências
+- [x] 1. Configurar estrutura do projeto e dependências
   - **Descrição:** Criar estrutura inicial do projeto Python com todas as dependências e ferramentas de qualidade configuradas
   - **Critérios de Aceitação:**
     - ✅ Estrutura de pastas criada: `src/`, `tests/`, `logs/`, `docs/`
