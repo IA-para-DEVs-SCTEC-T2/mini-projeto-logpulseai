@@ -33,9 +33,7 @@ _SEVERITY_ALIASES = {
 # ---------------------------------------------------------------------------
 
 # ISO 8601 / RFC 3339: 2024-01-15T10:00:00Z ou 2024-01-15T10:00:00+00:00
-_RE_ISO8601 = re.compile(
-    r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?"
-)
+_RE_ISO8601 = re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?")
 
 # Syslog: Jan 15 10:00:00 ou Jan  5 10:00:00
 _RE_SYSLOG_TS = re.compile(
@@ -49,9 +47,18 @@ _RE_SLASH_DATE = re.compile(r"\d{4}/\d{2}/\d{2}\s+\d{2}:\d{2}:\d{2}")
 _RE_DASH_DATE = re.compile(r"\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}")
 
 _SYSLOG_MONTHS = {
-    "Jan": 1, "Feb": 2, "Mar": 3, "Apr": 4,
-    "May": 5, "Jun": 6, "Jul": 7, "Aug": 8,
-    "Sep": 9, "Oct": 10, "Nov": 11, "Dec": 12,
+    "Jan": 1,
+    "Feb": 2,
+    "Mar": 3,
+    "Apr": 4,
+    "May": 5,
+    "Jun": 6,
+    "Jul": 7,
+    "Aug": 8,
+    "Sep": 9,
+    "Oct": 10,
+    "Nov": 11,
+    "Dec": 12,
 }
 
 
@@ -132,8 +139,12 @@ def parse_timestamp(raw_ts: Optional[str]) -> Tuple[Optional[datetime], bool]:
             time_parts = parts[2].split(":")
             year = datetime.now(timezone.utc).year
             dt = datetime(
-                year, month, day,
-                int(time_parts[0]), int(time_parts[1]), int(time_parts[2]),
+                year,
+                month,
+                day,
+                int(time_parts[0]),
+                int(time_parts[1]),
+                int(time_parts[2]),
                 tzinfo=timezone.utc,
             )
             return dt, False
@@ -158,7 +169,7 @@ def extract_timestamp_from_line(line: str) -> Tuple[Optional[datetime], bool, st
         if m:
             ts_str = m.group()
             dt, inferred = parse_timestamp(ts_str)
-            remaining = line[:m.start()].strip() + " " + line[m.end():].strip()
+            remaining = line[: m.start()].strip() + " " + line[m.end() :].strip()
             return dt, inferred, remaining.strip()
 
     return datetime.now(timezone.utc), True, line
