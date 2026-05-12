@@ -44,7 +44,8 @@ jobs:
             
             # Valida se o commit segue o padrão: <tipo>: <descrição>
             # ou <tipo>(escopo): <descrição>
-            if ! echo "$commit_msg" | grep -qE "^($ALLOWED_PREFIXES)(\(.+\))?: .+"; then
+            # Aceita tanto letra maiúscula quanto minúscula na descrição
+            if ! echo "$commit_msg" | grep -qE "^($ALLOWED_PREFIXES)(\(.+\))?:\s+.+"; then
               INVALID_COMMITS+=("$commit_msg")
             fi
           done <<< "$COMMITS"
@@ -64,8 +65,8 @@ jobs:
             echo "📋 PADRÃO ACEITO:"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo ""
-            echo "  <tipo>: <descrição curta no imperativo>"
-            echo "  <tipo>(escopo): <descrição curta no imperativo>"
+            echo "  <tipo>: <descrição>"
+            echo "  <tipo>(escopo): <descrição>"
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "✅ TIPOS PERMITIDOS:"
@@ -81,6 +82,7 @@ jobs:
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo ""
             echo "  ✅ feat: adiciona parser de logs JSON"
+            echo "  ✅ feat: Adiciona parser de logs JSON"
             echo "  ✅ fix: corrige timeout na análise"
             echo "  ✅ docs: atualiza README com exemplos"
             echo "  ✅ refactor: simplifica lógica do analyzer"
