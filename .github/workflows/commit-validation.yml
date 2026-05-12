@@ -45,7 +45,7 @@ jobs:
             # Valida se o commit segue o padrão: <tipo>: <descrição>
             # ou <tipo>(escopo): <descrição>
             # Aceita tanto letra maiúscula quanto minúscula na descrição
-            if ! echo "$commit_msg" | grep -qE "^($ALLOWED_PREFIXES)(\(.+\))?: [A-Za-z].+"; then
+            if ! echo "$commit_msg" | grep -qE "^($ALLOWED_PREFIXES)(\(.+\))?:\s+.+"; then
               INVALID_COMMITS+=("$commit_msg")
             fi
           done <<< "$COMMITS"
