@@ -210,7 +210,7 @@ Este documento contém as tarefas de implementação para o LogPulse IA, uma API
   - **Estimativa:** 1 hora (validação)
   - _Requisitos: RF-03.*, RNF-03_
 
-- [ ] 5. Implementar Analyzer de Anomalias
+- [x] 5. Implementar Analyzer de Anomalias
   - **Descrição:** Criar componente que detecta anomalias (spikes, stack traces) em um LogStream
   - **Critérios de Aceitação:**
     - ✅ Interface abstrata `LogAnalyzer` com método `analyze()`
