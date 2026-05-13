@@ -386,7 +386,7 @@ Este documento contém as tarefas de implementação para o LogPulse IA, uma API
   - **Estimativa:** 1-2 horas (validação)
   - _Requisitos: RF-03.*, RF-04.*, RF-05.*_
 
-- [ ] 8. Implementar camada de persistência (Repository)
+- [-] 8. Implementar camada de persistência (Repository)
   - **Descrição:** Criar camada de persistência com SQLite para armazenar logs analisados
   - **Critérios de Aceitação:**
     - ✅ Interface abstrata `LogRepository` com métodos CRUD
