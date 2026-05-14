@@ -283,7 +283,7 @@ Este documento contém as tarefas de implementação para o LogPulse IA, uma API
     - **Estimativa:** 2h
     - _Requisitos: RF-04.3_
   
-- [ ] 6. Implementar AIEngine com Ollama
+- [-] 6. Implementar AIEngine com Ollama
   - **Descrição:** Criar componente que usa Ollama/LLaMA 3 para gerar diagnóstico inteligente a partir da análise
   - **Critérios de Aceitação:**
     - ✅ Interface abstrata `AIEngine` com método `diagnose()`
