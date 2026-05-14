@@ -7,8 +7,8 @@ import re
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
-from drain3 import TemplateMiner  # type: ignore[import]
-from drain3.template_miner_config import TemplateMinerConfig  # type: ignore[import]
+from drain3 import TemplateMiner  # type: ignore[import-untyped]
+from drain3.template_miner_config import TemplateMinerConfig  # type: ignore[import-untyped]
 
 from src.models.schemas import LogEntry, LogTemplate, SeverityLevel
 from src.parsers.base import LogParser
@@ -106,12 +106,13 @@ class Drain3LogParser(LogParser):
         """
         result: List[LogTemplate] = []
         for tmpl_id, data in self._templates.items():
+            samples: List[str] = data.get("samples", [])  # type: ignore[assignment]
             result.append(
                 LogTemplate(
                     template_id=tmpl_id,
                     pattern=str(data["pattern"]),
                     occurrences=int(str(data["occurrences"])),
-                    sample_messages=list(data["samples"]),  # type: ignore[arg-type]
+                    sample_messages=samples,
                 )
             )
         return result
@@ -265,7 +266,7 @@ class Drain3LogParser(LogParser):
         self._templates[template_id]["occurrences"] = count + 1
 
         # Coleta até 5 amostras
-        samples = list(self._templates[template_id]["samples"])  # type: ignore[arg-type]
+        samples: List[str] = self._templates[template_id].get("samples", [])  # type: ignore[assignment]
         if len(samples) < _MAX_SAMPLES:
             samples.append(message)
             self._templates[template_id]["samples"] = samples

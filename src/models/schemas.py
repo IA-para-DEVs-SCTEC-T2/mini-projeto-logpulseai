@@ -14,7 +14,7 @@ from typing import Dict, List, Optional
 try:
     from typing import Annotated
 except ImportError:
-    from typing_extensions import Annotated  # type: ignore[assignment]
+    from typing_extensions import Annotated
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
