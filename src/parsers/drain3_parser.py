@@ -109,6 +109,9 @@ class Drain3LogParser(LogParser):
             result.append(
                 LogTemplate(
                     template_id=tmpl_id,
+
+                    pattern=str(data["pattern"]),
+                    occurrences=int(str(data["occurrences"])),
                     pattern=str(data.get("pattern", "")),
                     occurrences=int(str(data.get("occurrences", 0))),
                     sample_messages=samples,

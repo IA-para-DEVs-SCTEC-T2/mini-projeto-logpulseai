@@ -9,7 +9,18 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import Enum
+
+from typing import Dict, List, Optional
+
+try:
+    from typing import Annotated
+except ImportError:
+    from typing_extensions import Annotated
+
+from pydantic import BaseModel, Field, field_validator, model_validator
+
 from typing import Annotated, Dict, List, Optional
+
 
 from pydantic import BaseModel, Field, field_validator, model_validator  # noqa: F401
 
