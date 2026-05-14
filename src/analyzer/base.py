@@ -22,6 +22,7 @@ class LogAnalyzer(ABC):
 
     @abstractmethod
     def analyze(
+
         self, entries: List[LogEntry], templates: List[LogTemplate]
     ) -> AnalysisResult:
         """Analisa um stream de logs e detecta anomalias.
@@ -38,5 +39,19 @@ class LogAnalyzer(ABC):
             Se entries contiver menos de 2 entradas, o resultado
             deve ter insufficient_data=True e não executar detecção
             de anomalias.
+
+        self,
+        entries: List[LogEntry],
+        templates: List[LogTemplate],
+    ) -> AnalysisResult:
+        """Analisa um conjunto de entradas de log e detecta anomalias.
+
+        Args:
+            entries: Lista de entradas de log normalizadas.
+            templates: Templates extraídos pelo parser (Drain3).
+
+        Returns:
+            Resultado da análise contendo distribuição de severidade,
+            spikes detectados, stack traces agrupados e metadados.
         """
         ...

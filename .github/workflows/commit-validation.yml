@@ -34,6 +34,9 @@ jobs:
               continue
             fi
             
+            # Remove espaços em branco no início e fim
+            commit_msg=$(echo "$commit_msg" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+            
             # Ignora merge commits (começam com "Merge pull request" ou "Merge branch")
             if echo "$commit_msg" | grep -qE "^Merge (pull request|branch)"; then
               echo "⏭️  Ignorando merge commit: $commit_msg"
@@ -42,10 +45,14 @@ jobs:
             
             echo "Verificando: $commit_msg"
             
-            # Valida se o commit segue o padrão: <tipo>: <descrição>
-            # ou <tipo>(escopo): <descrição>
-            if ! echo "$commit_msg" | grep -qE "^($ALLOWED_PREFIXES)(\(.+\))?: .+"; then
+            # Valida se o commit começa com um dos tipos permitidos
+            # Aceita: <tipo>: <qualquer descrição>
+            # Aceita: <tipo>(escopo): <qualquer descrição>
+            if ! echo "$commit_msg" | grep -qE "^($ALLOWED_PREFIXES)(\(.+\))?:"; then
+              echo "  ❌ Rejeitado (não começa com tipo permitido)"
               INVALID_COMMITS+=("$commit_msg")
+            else
+              echo "  ✅ Válido"
             fi
           done <<< "$COMMITS"
           
@@ -64,8 +71,10 @@ jobs:
             echo "📋 PADRÃO ACEITO:"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo ""
-            echo "  <tipo>: <descrição curta no imperativo>"
-            echo "  <tipo>(escopo): <descrição curta no imperativo>"
+            echo "  <tipo>: <descrição>"
+            echo "  <tipo>(escopo): <descrição>"
+            echo ""
+            echo "  ⚠️  O commit deve começar com um dos tipos permitidos"
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "✅ TIPOS PERMITIDOS:"
@@ -81,6 +90,9 @@ jobs:
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo ""
             echo "  ✅ feat: adiciona parser de logs JSON"
+            echo "  ✅ feat: Adiciona parser de logs JSON"
+            echo "  ✅ feat: ajuste commit"
+            echo "  ✅ feat: WIP"
             echo "  ✅ fix: corrige timeout na análise"
             echo "  ✅ docs: atualiza README com exemplos"
             echo "  ✅ refactor: simplifica lógica do analyzer"

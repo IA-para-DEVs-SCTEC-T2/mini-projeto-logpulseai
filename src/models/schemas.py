@@ -9,6 +9,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import Enum
+
 from typing import Dict, List, Optional
 
 try:
@@ -18,6 +19,10 @@ except ImportError:
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from typing import Annotated, Dict, List, Optional
+
+
+from pydantic import BaseModel, Field, field_validator, model_validator  # noqa: F401
 
 # ============================================================================
 # Enums
@@ -60,6 +65,14 @@ class LogEntry(BaseModel):
     )
 
     model_config = {"str_strip_whitespace": True}
+
+    @field_validator("raw_content", mode="before")
+    @classmethod
+    def clean_raw_content(cls, v: str) -> str:
+        """Remove espaços em branco do início e fim."""
+        if isinstance(v, str):
+            v = v.strip()
+        return v
 
 
 class LogTemplate(BaseModel):
@@ -151,9 +164,7 @@ class Hypothesis(BaseModel):
     """
 
     description: str = Field(..., min_length=1, description="Descrição da hipótese de causa raiz")
-    probability: str = Field(
-        ..., description="Probabilidade estimada: 'alta', 'média' ou 'baixa'"
-    )
+    probability: str = Field(..., description="Probabilidade estimada: 'alta', 'média' ou 'baixa'")
     action: str = Field(..., min_length=1, description="Ação sugerida para investigar/corrigir")
     related_line: Optional[int] = Field(
         default=None, description="Número da linha relacionada ao problema (opcional)"
@@ -165,9 +176,7 @@ class Hypothesis(BaseModel):
         """Aceita apenas 'alta', 'média' ou 'baixa'."""
         normalized = v.strip().lower()
         if normalized not in _VALID_PROBABILITIES:
-            raise ValueError(
-                f"probability deve ser 'alta', 'média' ou 'baixa'. Recebido: '{v}'"
-            )
+            raise ValueError(f"probability deve ser 'alta', 'média' ou 'baixa'. Recebido: '{v}'")
         return normalized
 
     @field_validator("action")
@@ -229,9 +238,7 @@ class LogFileUpload(BaseModel):
     def validate_extension(cls, v: str) -> str:
         """Aceita apenas arquivos .log e .txt."""
         if not v.lower().endswith(_ALLOWED_EXTENSIONS):
-            raise ValueError(
-                f"Apenas arquivos {_ALLOWED_EXTENSIONS} são aceitos. Recebido: '{v}'"
-            )
+            raise ValueError(f"Apenas arquivos {_ALLOWED_EXTENSIONS} são aceitos. Recebido: '{v}'")
         return v
 
     @field_validator("content")
@@ -239,9 +246,7 @@ class LogFileUpload(BaseModel):
     def validate_size(cls, v: str) -> str:
         """Limita o conteúdo a 50MB (aprox. 50 * 1024 * 1024 chars)."""
         if len(v) > _MAX_FILE_CHARS:
-            raise ValueError(
-                f"Arquivo excede o limite de 50MB ({_MAX_FILE_CHARS} caracteres)"
-            )
+            raise ValueError(f"Arquivo excede o limite de 50MB ({_MAX_FILE_CHARS} caracteres)")
         return v
 
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
 from drain3 import TemplateMiner  # type: ignore[import-untyped]
@@ -110,8 +109,11 @@ class Drain3LogParser(LogParser):
             result.append(
                 LogTemplate(
                     template_id=tmpl_id,
+
                     pattern=str(data["pattern"]),
                     occurrences=int(str(data["occurrences"])),
+                    pattern=str(data.get("pattern", "")),
+                    occurrences=int(str(data.get("occurrences", 0))),
                     sample_messages=samples,
                 )
             )
@@ -152,23 +154,12 @@ class Drain3LogParser(LogParser):
 
         # Extrai campos — suporta variações de chave
         raw_ts = (
-            data.get("timestamp")
-            or data.get("time")
-            or data.get("ts")
-            or data.get("@timestamp")
+            data.get("timestamp") or data.get("time") or data.get("ts") or data.get("@timestamp")
         )
         raw_level = (
-            data.get("level")
-            or data.get("severity")
-            or data.get("lvl")
-            or data.get("log_level")
+            data.get("level") or data.get("severity") or data.get("lvl") or data.get("log_level")
         )
-        message = str(
-            data.get("message")
-            or data.get("msg")
-            or data.get("text")
-            or ""
-        )
+        message = str(data.get("message") or data.get("msg") or data.get("text") or "")
 
         ts, ts_inferred = parse_timestamp(str(raw_ts) if raw_ts else None)
         level, level_inferred = normalize_severity(str(raw_level) if raw_level else None)
@@ -248,8 +239,8 @@ class Drain3LogParser(LogParser):
         """
         result = self._miner.add_log_message(message)
         # Drain3 >= 0.9: retorna dict com cluster_id e template_mined
-        template_id = str(result["cluster_id"])
-        pattern = str(result["template_mined"])
+        template_id = str(result.get("cluster_id", ""))
+        pattern = str(result.get("template_mined", ""))
 
         if template_id not in self._templates:
             self._templates[template_id] = {
@@ -262,7 +253,7 @@ class Drain3LogParser(LogParser):
         self._templates[template_id]["pattern"] = pattern
 
         # Incrementa contagem
-        count = int(str(self._templates[template_id]["occurrences"]))
+        count = int(str(self._templates[template_id].get("occurrences", 0)))
         self._templates[template_id]["occurrences"] = count + 1
 
         # Coleta até 5 amostras

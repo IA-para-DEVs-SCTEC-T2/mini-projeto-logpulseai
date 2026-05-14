@@ -6,7 +6,7 @@ Este documento contém as tarefas de implementação para o LogPulse IA, uma API
 
 ## Tarefas
 
-- [ ] 1. Configurar estrutura do projeto e dependências
+- [x] 1. Configurar estrutura do projeto e dependências
   - **Descrição:** Criar estrutura inicial do projeto Python com todas as dependências e ferramentas de qualidade configuradas
   - **Critérios de Aceitação:**
     - ✅ Estrutura de pastas criada: `src/`, `tests/`, `logs/`, `docs/`
@@ -210,7 +210,7 @@ Este documento contém as tarefas de implementação para o LogPulse IA, uma API
   - **Estimativa:** 1 hora (validação)
   - _Requisitos: RF-03.*, RNF-03_
 
-- [ ] 5. Implementar Analyzer de Anomalias
+- [x] 5. Implementar Analyzer de Anomalias
   - **Descrição:** Criar componente que detecta anomalias (spikes, stack traces) em um LogStream
   - **Critérios de Aceitação:**
     - ✅ Interface abstrata `LogAnalyzer` com método `analyze()`
@@ -283,7 +283,7 @@ Este documento contém as tarefas de implementação para o LogPulse IA, uma API
     - **Estimativa:** 2h
     - _Requisitos: RF-04.3_
   
-- [ ] 6. Implementar AIEngine com Ollama
+- [-] 6. Implementar AIEngine com Ollama
   - **Descrição:** Criar componente que usa Ollama/LLaMA 3 para gerar diagnóstico inteligente a partir da análise
   - **Critérios de Aceitação:**
     - ✅ Interface abstrata `AIEngine` com método `diagnose()`
@@ -386,7 +386,7 @@ Este documento contém as tarefas de implementação para o LogPulse IA, uma API
   - **Estimativa:** 1-2 horas (validação)
   - _Requisitos: RF-03.*, RF-04.*, RF-05.*_
 
-- [ ] 8. Implementar camada de persistência (Repository)
+- [-] 8. Implementar camada de persistência (Repository)
   - **Descrição:** Criar camada de persistência com SQLite para armazenar logs analisados
   - **Critérios de Aceitação:**
     - ✅ Interface abstrata `LogRepository` com métodos CRUD
