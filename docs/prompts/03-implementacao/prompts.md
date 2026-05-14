@@ -82,7 +82,6 @@ Todas as ferramentas de qualidade configuradas e validadas com sucesso:
 
 ---
 
-
 ## P03-02 — Criar Interface Abstrata LogParser
 
 **Data:** 2025-05-13
