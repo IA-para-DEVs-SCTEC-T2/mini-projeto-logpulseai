@@ -49,4 +49,3 @@ main → bugfix/nome → PR (1 aprovação) → merge → main
 
 🚧 Em desenvolvimento ativo
 
-
