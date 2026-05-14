@@ -312,3 +312,177 @@ Drain3LogParser implementado e validado com sucesso:
 - Tarefa 3.5: Implementar extração de templates (já integrada)
 - Tarefa 4: Checkpoint - Validar Parser
 
+
+
+---
+
+## P03-04 — Criar Interface Abstrata LogAnalyzer
+
+**Data:** 2025-05-13
+**Ferramenta:** Kiro
+
+**Prompt:**
+```
+Tarefa Principal: #269
+
+Descrição: Definir contrato abstrato para implementações de analyzer
+
+Critérios de Aceitação:
+- Classe abstrata `LogAnalyzer` com ABC (Abstract Base Class)
+- Método abstrato `analyze(entries: list[LogEntry], templates: list[LogTemplate]) -> AnalysisResult`
+- Tipagem completa com type hints
+
+Definition of Done:
+- Não é possível instanciar LogAnalyzer diretamente
+- mypy --strict passa sem erros
+
+Estimativa: 30min
+Requisitos: RF-04.1
+```
+
+**Resultado:**
+Interface abstrata LogAnalyzer criada e validada com sucesso:
+
+✅ **Arquivo: `src/analyzer/base.py`** (NOVO)
+- Classe abstrata `LogAnalyzer` com ABC
+- Método abstrato `analyze(entries: List[LogEntry], templates: List[LogTemplate]) -> AnalysisResult`
+- Tipagem completa com type hints
+- Docstrings em português seguindo Google Style
+- Documentação clara sobre o contrato esperado
+
+✅ **Arquivo: `src/analyzer/__init__.py`** (NOVO)
+- Exportação da interface pública `LogAnalyzer`
+- Docstring do módulo explicando responsabilidades
+
+**Validações Realizadas:**
+
+1. **mypy --strict compliance:**
+   ```
+   Success: no issues found in 1 source file
+   ```
+
+2. **Não pode ser instanciada diretamente:**
+   ```
+   TypeError: Can't instantiate abstract class LogAnalyzer 
+   without an implementation for abstract method 'analyze'
+   ```
+
+3. **Subclasse sem implementação também falha:**
+   ```
+   class IncompleteAnalyzer(LogAnalyzer):
+       pass
+   
+   TypeError: Can't instantiate abstract class IncompleteAnalyzer 
+   without an implementation for abstract method 'analyze'
+   ```
+
+4. **Subclasse com implementação funciona:**
+   ```
+   class ConcreteAnalyzer(LogAnalyzer):
+       def analyze(self, entries, templates):
+           return AnalysisResult()
+   
+   analyzer = ConcreteAnalyzer()  # ✅ Funciona
+   ```
+
+**Estrutura da Interface:**
+
+```python
+class LogAnalyzer(ABC):
+    """Interface abstrata para implementações de analyzer de log."""
+    
+    @abstractmethod
+    def analyze(
+        self, 
+        entries: List[LogEntry], 
+        templates: List[LogTemplate]
+    ) -> AnalysisResult:
+        """Analisa um stream de logs e detecta anomalias.
+        
+        Args:
+            entries: Lista de entradas de log normalizadas pelo parser.
+            templates: Lista de templates extraídos pelo Drain3.
+        
+        Returns:
+            AnalysisResult contendo anomalias detectadas, distribuição
+            de severidade, spikes e metadados da análise.
+        
+        Note:
+            Se entries contiver menos de 2 entradas, o resultado
+            deve ter insufficient_data=True e não executar detecção
+            de anomalias.
+        """
+        ...
+```
+
+**Responsabilidades do Analyzer:**
+
+1. **Processamento de LogEntry:**
+   - Recebe lista de entradas normalizadas pelo parser
+   - Processa templates extraídos pelo Drain3
+
+2. **Detecção de Anomalias:**
+   - Agrupa entradas por template_id
+   - Calcula distribuição de severidade
+   - Detecta spikes de erro (≥10 erros em 60s)
+   - Agrupa stack traces multi-linha
+
+3. **Validação de Dados:**
+   - Retorna `insufficient_data=True` se < 2 entradas
+   - Garante que AnalysisResult é sempre válido
+
+4. **Retorno Estruturado:**
+   - Retorna AnalysisResult com todos os campos preenchidos
+   - Mantém rastreabilidade de anomalias detectadas
+
+**Integração com Arquitetura:**
+
+```
+LogParser (interface)
+    ↓
+Drain3LogParser (implementação concreta)
+    ↓
+LogEntry[] + LogTemplate[]
+    ↓
+LogAnalyzer (interface) ← NOVO
+    ↓
+AnomalyDetector (implementação concreta - próxima tarefa)
+    ↓
+AnalysisResult
+    ↓
+AIEngine (próxima etapa)
+```
+
+**Padrão de Design:**
+
+- **Abstract Base Class (ABC):** Garante que subclasses implementem o contrato
+- **Protocol-like Interface:** Define contrato claro e extensível
+- **Type Hints Completos:** Facilita integração com mypy strict
+- **Docstrings Descritivas:** Guia implementadores sobre responsabilidades
+
+**Métricas Finais:**
+- Type Checking: Success - no issues ✅
+- ABC Compliance: Não pode ser instanciada diretamente ✅
+- Subclass Validation: Força implementação de métodos abstratos ✅
+- Documentação: Completa com exemplos e notas ✅
+
+**Arquivos Criados:**
+- `src/analyzer/base.py` - Interface abstrata LogAnalyzer
+- `src/analyzer/__init__.py` - Exportações do módulo
+
+**Branch e Commit:**
+- Branch: `feature/interface-abstrata-loganalyzer`
+- Commit: `feat(analyzer): cria interface abstrata LogAnalyzer para deteccao de anomalias`
+
+**Requisitos Atendidos:**
+- ✅ RF-04.1: Interface abstrata LogAnalyzer com ABC
+- ✅ Método abstrato `analyze()` com tipagem completa
+- ✅ mypy --strict compliance
+- ✅ Não pode ser instanciada diretamente
+- ✅ Força implementação em subclasses
+
+**Próximas Etapas:**
+- Tarefa 5.2: Implementar AnomalyDetector (implementação concreta)
+- Tarefa 5.3: Implementar detecção de spikes
+- Tarefa 5.4: Implementar agrupamento de stack traces
+- Tarefa 7: Checkpoint - Validar componentes core
