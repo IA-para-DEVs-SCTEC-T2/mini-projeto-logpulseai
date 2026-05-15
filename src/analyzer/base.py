@@ -14,13 +14,10 @@ class LogAnalyzer(ABC):
     Todo analyzer concreto deve implementar o método `analyze`,
     garantindo que o contrato seja respeitado independentemente
     da estratégia de detecção de anomalias utilizada.
-
-    O analyzer é responsável por processar um stream de LogEntry
-    e produzir um AnalysisResult contendo anomalias detectadas,
-    distribuição de severidade e metadados da análise.
     """
 
     @abstractmethod
+
     def analyze(self, entries: List[LogEntry], templates: List[LogTemplate]) -> AnalysisResult:
         """Analisa um stream de logs e detecta anomalias.
 
@@ -36,5 +33,20 @@ class LogAnalyzer(ABC):
             Se entries contiver menos de 2 entradas, o resultado
             deve ter insufficient_data=True e não executar detecção
             de anomalias.
+=======
+    def analyze(
+        self,
+        entries: List[LogEntry],
+        templates: List[LogTemplate],
+    ) -> AnalysisResult:
+        """Analisa um conjunto de entradas de log e detecta anomalias.
+
+        Args:
+            entries: Lista de entradas de log normalizadas.
+            templates: Templates extraídos pelo parser (Drain3).
+
+        Returns:
+            Resultado da análise contendo distribuição de severidade,
+            spikes detectados, stack traces agrupados e metadados.
         """
         ...
