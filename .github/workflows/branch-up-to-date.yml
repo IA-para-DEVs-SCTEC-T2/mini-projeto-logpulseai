@@ -1,0 +1,74 @@
+name: Branch Up-to-Date Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check-up-to-date:
+    name: Verificar branch atualizada com main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout completo com histórico
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verificar se branch está atualizada com main
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          BASE="origin/main"
+
+          echo "=================================================="
+          echo "🔍 Verificando atualização da branch com main"
+          echo "=================================================="
+          echo "Branch de origem : $BRANCH"
+          echo "Branch de destino: main"
+          echo ""
+
+          # Busca o commit mais recente do main remoto
+          git fetch origin main --quiet
+
+          # Verifica se o HEAD do main está no histórico da branch
+          MAIN_HEAD=$(git rev-parse origin/main)
+          MERGE_BASE=$(git merge-base HEAD origin/main)
+
+          echo "HEAD do main   : $MAIN_HEAD"
+          echo "Merge base     : $MERGE_BASE"
+          echo ""
+
+          if [ "$MERGE_BASE" = "$MAIN_HEAD" ]; then
+            echo "✅ Branch está atualizada com main."
+            echo ""
+            echo "Nenhum commit novo no main que não esteja nesta branch."
+            exit 0
+          else
+            # Conta quantos commits o main está à frente
+            COMMITS_BEHIND=$(git rev-list --count HEAD..origin/main)
+
+            echo "❌ BRANCH DESATUALIZADA"
+            echo ""
+            echo "=================================================="
+            echo "⚠️  AÇÃO NECESSÁRIA ANTES DO MERGE"
+            echo "=================================================="
+            echo ""
+            echo "Sua branch está $COMMITS_BEHIND commit(s) atrás do main."
+            echo ""
+            echo "Isso pode causar conflitos de merge no repositório."
+            echo "Execute os comandos abaixo para atualizar sua branch:"
+            echo ""
+            echo "  git checkout $BRANCH"
+            echo "  git pull origin main"
+            echo "  # Resolva conflitos se houver"
+            echo "  git push origin $BRANCH"
+            echo ""
+            echo "Depois de atualizar, o CI será executado novamente."
+            echo "=================================================="
+            exit 1
+          fi
