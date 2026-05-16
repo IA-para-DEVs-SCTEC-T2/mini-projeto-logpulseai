@@ -80,6 +80,17 @@ class LogRepository(ABC):
         """
 
     @abstractmethod
+    async def count(self) -> int:
+        """Retorna o total de registros no repositório.
+
+        Returns:
+            Número total de logs persistidos.
+
+        Raises:
+            StorageError: Se a operação de contagem falhar.
+        """
+
+    @abstractmethod
     async def delete(self, log_id: str) -> bool:
         """Remove um log pelo seu UUID.
 
