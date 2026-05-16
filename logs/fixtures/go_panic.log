@@ -1,0 +1,26 @@
+2024/01/15 10:00:00 [INFO] server: Starting HTTP server on :8080
+2024/01/15 10:00:01 [INFO] database: Connected to PostgreSQL (pool_size=5)
+2024/01/15 10:00:02 [INFO] cache: Redis connection established
+2024/01/15 10:00:05 [INFO] handler: GET /api/v1/users (200) 12ms
+2024/01/15 10:00:06 [DEBUG] middleware: Auth token validated for user_id=42
+2024/01/15 10:00:10 [WARNING] handler: Slow response detected: POST /api/v1/orders took 2100ms
+2024/01/15 10:00:11 [ERROR] handler: Request failed: POST /api/v1/orders/bulk
+panic: runtime error: index out of range [5] with length 3
+goroutine 42 [running]:
+	main.(*OrderHandler).BulkCreate(0xc0001a2000, 0xc000194000)
+	/app/handlers/order.go:89 +0x1a5
+	main.(*Router).ServeHTTP(0xc0000b6000, {0x7f9a1c0, 0xc000194000}, 0xc0001a4000)
+	/app/router/router.go:45 +0x2b3
+	net/http.serverHandler.ServeHTTP({0xc0000b4000}, {0x7f9a1c0, 0xc000194000}, 0xc0001a4000)
+	/usr/local/go/src/net/http/server.go:2936 +0x316
+goroutine 1 [IO wait]:
+	internal/poll.runtime_pollWait(0x7f9a2c0, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:343 +0x85
+2024/01/15 10:00:11 [ERROR] server: Recovered from panic in handler
+2024/01/15 10:00:12 [INFO] handler: GET /api/v1/health (200) 1ms
+2024/01/15 10:00:15 [INFO] handler: GET /api/v1/products (200) 45ms
+2024/01/15 10:00:20 [WARNING] database: Connection pool utilization at 80%
+2024/01/15 10:00:25 [ERROR] handler: Request failed: DELETE /api/v1/users/999
+2024/01/15 10:00:25 [ERROR] repository: Record not found: users.id=999
+2024/01/15 10:00:30 [INFO] server: Graceful shutdown initiated (SIGTERM)
+2024/01/15 10:00:31 [INFO] server: All connections drained, exiting
