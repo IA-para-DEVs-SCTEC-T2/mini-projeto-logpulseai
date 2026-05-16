@@ -1,0 +1,28 @@
+2024-01-15 10:00:00 INFO Application running normally
+2024-01-15 10:00:05 INFO Request processed: GET /api/status (200)
+2024-01-15 10:00:10 INFO Request processed: POST /api/data (201)
+2024-01-15 10:00:15 WARNING High latency detected: 800ms
+2024-01-15 10:00:20 INFO Request processed: GET /api/users (200)
+2024-01-15 10:01:00 ERROR Database connection timeout after 30s
+2024-01-15 10:01:01 ERROR Failed to execute query: SELECT * FROM orders
+2024-01-15 10:01:02 ERROR Connection pool exhausted (0/10 available)
+2024-01-15 10:01:03 CRITICAL Service degraded: database unavailable
+2024-01-15 10:01:04 ERROR Request failed: POST /api/orders (503)
+2024-01-15 10:01:05 ERROR Request failed: GET /api/users (503)
+2024-01-15 10:01:06 ERROR Request failed: GET /api/products (503)
+2024-01-15 10:01:07 ERROR Health check failed: database unreachable
+2024-01-15 10:01:08 CRITICAL Circuit breaker opened for database service
+2024-01-15 10:01:09 ERROR Request failed: POST /api/payments (503)
+2024-01-15 10:01:10 ERROR Request failed: GET /api/inventory (503)
+2024-01-15 10:01:11 ERROR Retry attempt 1/3 for database connection
+2024-01-15 10:01:12 ERROR Retry attempt 2/3 for database connection
+2024-01-15 10:01:15 ERROR Retry attempt 3/3 for database connection
+2024-01-15 10:01:16 CRITICAL All retry attempts exhausted for database
+2024-01-15 10:01:20 WARNING Failover initiated to secondary database
+2024-01-15 10:01:25 INFO Secondary database connection established
+2024-01-15 10:01:30 INFO Service recovered: database available (secondary)
+2024-01-15 10:01:35 INFO Request processed: GET /api/status (200)
+2024-01-15 10:01:40 INFO Circuit breaker half-open: testing primary database
+2024-01-15 10:02:00 INFO Primary database reconnected successfully
+2024-01-15 10:02:05 INFO Circuit breaker closed: primary database restored
+2024-01-15 10:02:10 INFO Normal operation resumed
