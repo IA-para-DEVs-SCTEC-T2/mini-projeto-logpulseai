@@ -1,3 +1,8 @@
+
+"""Dependências compartilhadas para injeção nos endpoints da API.
+
+Fornece instâncias de repositório e outros serviços necessários
+
 """Dependências compartilhadas para injeção nos endpoints da API.
 
 Fornece instâncias de repositório e outros serviços necessários
