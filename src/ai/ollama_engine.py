@@ -13,6 +13,7 @@ from typing import List
 import openai
 
 from src.ai.base import AIEngine
+from src.ai.health_check import check_ollama_tcp
 from src.exceptions import AIEngineTimeoutError, AIEngineUnavailableError
 from src.models.schemas import AIDiagnosis, AnalysisResult, Hypothesis, LogEntry, SeverityLevel
 
@@ -207,27 +208,13 @@ def _stratified_sample(entries: List[LogEntry], max_entries: int = _MAX_SAMPLE_E
 def _check_ollama_availability() -> None:
     """Verifica se o Ollama está disponível na porta 11434.
 
-    Tenta estabelecer uma conexão TCP com o servidor Ollama.
+    Delega ao módulo health_check para verificação TCP.
     Lança AIEngineUnavailableError se a conexão falhar.
 
     Raises:
         AIEngineUnavailableError: Se o Ollama não estiver acessível.
     """
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(3)
-        result = sock.connect_ex((_OLLAMA_HOST, _OLLAMA_PORT))
-        sock.close()
-        if result != 0:
-            raise AIEngineUnavailableError(
-                f"Ollama não está disponível em {_OLLAMA_BASE_URL}. "
-                "Execute: ollama serve"
-            )
-    except OSError as exc:
-        raise AIEngineUnavailableError(
-            f"Ollama não está disponível em {_OLLAMA_BASE_URL}. "
-            "Execute: ollama serve"
-        ) from exc
+    check_ollama_tcp(host=_OLLAMA_HOST, port=_OLLAMA_PORT)
 
 
 def _parse_llm_response(content: str) -> AIDiagnosis:
