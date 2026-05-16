@@ -1,0 +1,34 @@
+2024-01-15 10:00:01 INFO Starting application server on port 8080
+2024-01-15 10:00:02 INFO Database connection pool initialized (max=10)
+2024-01-15 10:00:05 INFO Request received: GET /api/v1/users
+2024-01-15 10:00:05 DEBUG Querying users table with filter: active=true
+2024-01-15 10:00:06 INFO Response sent: 200 OK (23ms)
+2024-01-15 10:00:10 INFO Request received: POST /api/v1/orders
+2024-01-15 10:00:10 WARNING Slow query detected: 1200ms for orders.insert
+2024-01-15 10:00:11 ERROR Failed to process order #4521
+Traceback (most recent call last):
+  File "/app/services/order_service.py", line 87, in process_order
+    result = self.payment_gateway.charge(order.total)
+  File "/app/gateways/payment.py", line 42, in charge
+    response = self.client.post("/v1/charges", data=payload)
+  File "/app/lib/http_client.py", line 15, in post
+    raise ConnectionError(f"Failed to connect to {url}")
+ConnectionError: Failed to connect to /v1/charges
+2024-01-15 10:00:11 ERROR Order #4521 payment failed: ConnectionError
+2024-01-15 10:00:12 INFO Request received: GET /api/v1/health
+2024-01-15 10:00:12 INFO Response sent: 200 OK (2ms)
+2024-01-15 10:00:15 WARNING Memory usage at 78% (threshold: 80%)
+2024-01-15 10:00:20 INFO Request received: GET /api/v1/products?page=2
+2024-01-15 10:00:20 DEBUG Cache hit for products:page:2
+2024-01-15 10:00:20 INFO Response sent: 200 OK (5ms)
+2024-01-15 10:00:25 ERROR Unhandled exception in request handler
+Traceback (most recent call last):
+  File "/app/api/v1/routes.py", line 55, in handle_request
+    data = serialize_response(result)
+  File "/app/serializers/json.py", line 23, in serialize_response
+    return json.dumps(obj, default=str)
+TypeError: Object of type Decimal is not JSON serializable
+2024-01-15 10:00:25 ERROR Response sent: 500 Internal Server Error
+2024-01-15 10:00:30 INFO Graceful shutdown initiated
+2024-01-15 10:00:31 INFO Closing database connections...
+2024-01-15 10:00:32 INFO Application stopped

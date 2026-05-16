@@ -2,6 +2,18 @@
 
 Define todas as exceções específicas do domínio, organizadas em uma
 hierarquia que facilita o tratamento granular de erros.
+
+Hierarquia:
+    LogPulseError (base)
+    ├── ConfigError
+    ├── ValidationError
+    ├── NotFoundError
+    ├── ParsingError
+    ├── AnalysisError
+    ├── StorageError
+    └── AIEngineError
+        ├── AIEngineTimeoutError
+        └── AIEngineUnavailableError
 """
 
 from __future__ import annotations
@@ -12,6 +24,31 @@ class LogPulseError(Exception):
 
     Todas as exceções customizadas do sistema herdam desta classe,
     permitindo capturar qualquer erro do domínio com um único handler.
+    """
+
+
+class ConfigError(LogPulseError):
+    """Erro de configuração (logpulse.toml inválido, variável de ambiente ausente).
+
+    Lançada durante a inicialização quando a configuração do sistema
+    está ausente, malformada ou contém valores inválidos.
+    """
+
+
+class ValidationError(LogPulseError):
+    """Erro de validação de dados de entrada.
+
+    Lançada quando os dados fornecidos pelo usuário não atendem
+    aos critérios de validação (extensão de arquivo inválida,
+    conteúdo vazio, tamanho excedido, etc.).
+    """
+
+
+class NotFoundError(LogPulseError):
+    """Recurso não encontrado no sistema.
+
+    Lançada quando uma operação de busca por ID não encontra
+    o registro solicitado no banco de dados.
     """
 
 
