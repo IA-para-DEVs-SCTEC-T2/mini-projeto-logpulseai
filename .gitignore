@@ -54,6 +54,8 @@ Thumbs.db
 
 # Logs gerados localmente
 *.log
+# Exceção: fixtures de teste
+!logs/fixtures/*.log
 
 # SQLite
 *.db
