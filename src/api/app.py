@@ -10,6 +10,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
+from src.api.middleware import register_exception_handlers
 from src.api.v1.router import router as v1_router
 from src.core.config import get_settings
 
@@ -47,6 +48,9 @@ def create_app() -> FastAPI:
         debug=settings.api_debug,
         lifespan=lifespan,
     )
+
+    # Registra handlers de exceções do domínio (antes dos routers)
+    register_exception_handlers(app)
 
     # Registra router v1
     app.include_router(v1_router, prefix="/api/v1")

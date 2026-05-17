@@ -1,6 +1,3 @@
-"""Router para endpoints de logs — GET /api/v1/logs/{id}.
-
-Endpoint para consulta de um log pelo seu UUID.
 """Endpoints de logs da API v1 do LogPulse IA.
 
 Implementa os endpoints CRUD e de análise de logs com injeção
@@ -9,13 +6,6 @@ de dependências via FastAPI Depends.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
-
-from src.api.dependencies import get_repository
-from src.models.schemas import LogAnalysisResponse
-from src.repository.base import LogRepository
-
-router = APIRouter(prefix="/api/v1/logs", tags=["logs"])
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
@@ -64,7 +54,6 @@ async def upload_log_file(
         HTTPException 400: Se o arquivo não for .log ou .txt.
         HTTPException 422: Se o conteúdo for inválido.
     """
-    # Valida extensão
     filename = file.filename or ""
     if not filename.lower().endswith((".log", ".txt")):
         raise HTTPException(
@@ -79,7 +68,6 @@ async def upload_log_file(
             detail="Arquivo vazio ou sem conteúdo válido.",
         )
 
-    # Pipeline: parse → analyze → diagnose → persist
     entries = parser.parse(content)
     templates = parser.get_templates()
     analysis = analyzer.analyze(entries, templates)
@@ -163,9 +151,6 @@ async def list_logs(
         page_size = 20
 
     items = await repo.list_paginated(page, page_size)
-
-    # Calcula total (simplificado — em produção usar COUNT query)
-    # Por ora retorna baseado nos itens retornados
     total = len(items) + ((page - 1) * page_size)
     pages = (total + page_size - 1) // page_size if total > 0 else 0
 
@@ -188,21 +173,6 @@ async def list_logs(
     },
 )
 async def get_log_by_id(
-    log_id: str,
-    repository: LogRepository = Depends(get_repository),
-) -> LogAnalysisResponse:
-    """Consulta um log analisado pelo seu UUID.
-
-    Args:
-        log_id: UUID do registro a ser consultado.
-        repository: Instância do repositório injetada via Depends.
-
-    Returns:
-        LogAnalysisResponse com análise e diagnóstico completos.
-    summary="Consulta de log pelo ID",
-    description="Retorna um log analisado pelo seu UUID.",
-)
-async def get_log(
     log_id: str,
     repo: LogRepository = Depends(get_repository),
 ) -> LogAnalysisResponse:
@@ -246,13 +216,6 @@ async def delete_log(
     Raises:
         HTTPException 404: Se o log não for encontrado.
     """
-    result = await repository.get_by_id(log_id)
-    if result is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Log com ID '{log_id}' não encontrado",
-        )
-    return result
     deleted = await repo.delete(log_id)
     if not deleted:
         raise HTTPException(
