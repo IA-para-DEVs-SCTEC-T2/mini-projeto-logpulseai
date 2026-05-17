@@ -12,18 +12,27 @@ permissions:
 
 jobs:
   approval-check:
-    name: Check PR Approvals (GitFlow)
+    name: Check PR Approvals
     runs-on: ubuntu-latest
+    if: github.event.pull_request.base.ref == 'main' || github.event.pull_request.base.ref == 'master'
     steps:
-      - name: Verify GitFlow branch rules and approvals
+      - name: Verify GitHub Flow branch rules and approvals
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             // Obter informações do PR
+            const prNumber = context.payload.pull_request?.number || context.issue?.number;
+            
+            if (!prNumber) {
+              core.setFailed('Não foi possível identificar o número do PR');
+              return;
+            }
+
             const { data: pr } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
+              pull_number: prNumber,
             });
 
             const sourceBranch = pr.head.ref;
@@ -31,7 +40,7 @@ jobs:
             const prAuthor = pr.user.login;
 
             console.log('='.repeat(50));
-            console.log('🔀 GitFlow - Validação de Pull Request');
+            console.log('🔀 GitHub Flow - Validação de Pull Request');
             console.log('='.repeat(50));
             console.log(`PR #${context.payload.pull_request.number}: ${pr.title}`);
             console.log(`Autor: ${prAuthor}`);
@@ -39,52 +48,23 @@ jobs:
             console.log(`Branch de destino: ${targetBranch}`);
             console.log('='.repeat(50));
 
-            // Validar fluxo GitFlow
+            // Validar fluxo GitHub Flow
             let isValidFlow = false;
             let flowDescription = '';
 
             if (targetBranch === 'main' || targetBranch === 'master') {
-              if (sourceBranch === 'develop') {
-                isValidFlow = true;
-                flowDescription = 'Release: develop → main';
-              } else if (sourceBranch.startsWith('release/')) {
-                isValidFlow = true;
-                flowDescription = 'Release branch → main';
-              } else if (sourceBranch.startsWith('hotfix/')) {
-                isValidFlow = true;
-                flowDescription = 'Hotfix → main';
-              } else {
-                core.setFailed(
-                  `❌ FLUXO GITFLOW INVÁLIDO\n\n` +
-                  `Para merge em '${targetBranch}', apenas estas branches são permitidas:\n` +
-                  `  • develop (release para produção)\n` +
-                  `  • release/* (finalização de release)\n` +
-                  `  • hotfix/* (correção urgente)\n\n` +
-                  `Branch atual: ${sourceBranch}`
-                );
-                return;
-              }
-            } else if (targetBranch === 'develop') {
               if (sourceBranch.startsWith('feature/')) {
                 isValidFlow = true;
-                flowDescription = 'Feature → develop';
+                flowDescription = 'Feature → main';
               } else if (sourceBranch.startsWith('bugfix/')) {
                 isValidFlow = true;
-                flowDescription = 'Bugfix → develop';
-              } else if (sourceBranch.startsWith('release/')) {
-                isValidFlow = true;
-                flowDescription = 'Release merge back → develop';
-              } else if (sourceBranch.startsWith('hotfix/')) {
-                isValidFlow = true;
-                flowDescription = 'Hotfix merge back → develop';
+                flowDescription = 'Bugfix → main';
               } else {
                 core.setFailed(
-                  `❌ FLUXO GITFLOW INVÁLIDO\n\n` +
-                  `Para merge em 'develop', apenas estas branches são permitidas:\n` +
+                  `❌ FLUXO GITHUB FLOW INVÁLIDO\n\n` +
+                  `Para merge em '${targetBranch}', apenas estas branches são permitidas:\n` +
                   `  • feature/* (nova funcionalidade)\n` +
-                  `  • bugfix/* (correção de bug)\n` +
-                  `  • release/* (merge back após release)\n` +
-                  `  • hotfix/* (merge back após hotfix)\n\n` +
+                  `  • bugfix/* (correção de bug)\n\n` +
                   `Branch atual: ${sourceBranch}`
                 );
                 return;
@@ -94,7 +74,7 @@ jobs:
               flowDescription = 'Branch não protegida';
             }
 
-            console.log(`✅ Fluxo GitFlow válido: ${flowDescription}`);
+            console.log(`✅ Fluxo GitHub Flow válido: ${flowDescription}`);
             console.log('');
 
             // Buscar todas as reviews do PR
@@ -139,6 +119,7 @@ jobs:
                 `Este PR precisa de pelo menos 1 aprovação de outro colaborador.\n` +
                 `Aprovações atuais: ${approvalCount}/1`
               );
-            } else {
-              console.log('✅ Todas as validações passaram! Merge pode ser realizado.');
+              return;
             }
+
+            console.log('✅ Todas as validações passaram! Merge pode ser realizado.');
