@@ -736,7 +736,7 @@ Este documento contém as tarefas de implementação para o LogPulse IA, uma API
   - **Estimativa:** 2 horas (validação)
   - _Requisitos: RF-*, RNF-*_
 
-- [ ] 14. Implementar validação de schemas Pydantic
+- [x] 14. Implementar validação de schemas Pydantic
   - **Descrição:** Garantir que todos os schemas Pydantic estão validando corretamente
   - **Critérios de Aceitação:**
     - ✅ Todos os campos obrigatórios são validados

@@ -1,9 +1,4 @@
-"""Módulo de análise de anomalias em logs do LogPulse IA.
-
-Fornece interfaces abstratas e implementações concretas para
-detecção de anomalias, spikes e padrões em streams de log.
-"""
-
+"""Módulo de análise de anomalias do LogPulse IA."""
 
 from src.analyzer.base import LogAnalyzer
 from src.analyzer.detector import AnomalyDetector

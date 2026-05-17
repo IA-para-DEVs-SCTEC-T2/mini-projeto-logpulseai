@@ -1,0 +1,28 @@
+# Configuração do LogPulse IA
+# Documentação: docs/configuracao.md
+
+[ai]
+model = "llama3"
+endpoint = "http://localhost:11434"
+temperature = 0.7
+max_tokens = 1000
+timeout_seconds = 30
+
+# Para usar OpenAI em vez do Ollama local, comente o endpoint acima
+# e defina a variável de ambiente LOGPULSE_API_KEY com sua chave.
+# model = "gpt-4o"
+
+[parser]
+format = "auto"  # auto | json | plaintext | syslog | apache
+
+# Expressão regular customizada com grupos nomeados (opcional):
+# custom_regex = "(?P<timestamp>\\S+) (?P<level>\\w+) (?P<message>.*)"
+
+[analyzer]
+spike_threshold = 10   # número de erros por janela para detectar spike
+window_seconds = 60    # tamanho da janela de tempo em segundos
+min_cluster_size = 3   # mínimo de mensagens para formar um cluster
+
+[output]
+format = "text"  # text | json
+color = true
