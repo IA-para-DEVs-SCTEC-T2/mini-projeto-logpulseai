@@ -9,7 +9,12 @@ from src.models.schemas import AnalysisResult, LogEntry, LogTemplate
 
 
 class LogAnalyzer(ABC):
-    """Interface abstrata para implementações de analyzer de log."""
+    """Interface abstrata para implementações de analyzer de log.
+
+    Todo analyzer concreto deve implementar o método `analyze`,
+    garantindo que o contrato seja respeitado independentemente
+    da estratégia de detecção de anomalias utilizada.
+    """
 
     @abstractmethod
     def analyze(
