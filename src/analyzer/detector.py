@@ -8,6 +8,7 @@ from datetime import timedelta
 from typing import Dict, List
 
 from src.analyzer.base import LogAnalyzer
+from src.core.logging import get_logger
 from src.models.schemas import (
     AnalysisResult,
     LogEntry,
@@ -15,6 +16,8 @@ from src.models.schemas import (
     SeverityLevel,
     Spike,
 )
+
+logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # Constantes de configuração
@@ -60,8 +63,19 @@ class AnomalyDetector(LogAnalyzer):
             AnalysisResult contendo anomalias detectadas, distribuição
             de severidade, spikes e metadados da análise.
         """
+        logger.info(
+            "analysis_started",
+            total_entries=len(entries),
+            total_templates=len(templates)
+        )
+        
         # Verifica dados insuficientes (RF-04.5)
         if len(entries) < 2:
+            logger.warning(
+                "insufficient_data",
+                total_entries=len(entries),
+                minimum_required=2
+            )
             return AnalysisResult(
                 total_entries=len(entries),
                 templates=templates,
@@ -70,6 +84,11 @@ class AnomalyDetector(LogAnalyzer):
 
         # Calcula distribuição de severidade (RF-04.4)
         severity_distribution = self._calculate_severity_distribution(entries)
+        
+        logger.debug(
+            "severity_distribution_calculated",
+            distribution={k.value: v for k, v in severity_distribution.items()}
+        )
 
         # Conta erros e warnings
         error_count = severity_distribution.get(SeverityLevel.ERROR, 0) + severity_distribution.get(
@@ -82,9 +101,39 @@ class AnomalyDetector(LogAnalyzer):
 
         # Detecta spikes de erro (RF-04.2, RN-02)
         spikes = self._detect_spikes(entries)
+        
+        if spikes:
+            logger.warning(
+                "spikes_detected",
+                spike_count=len(spikes),
+                spikes=[
+                    {
+                        "start_time": spike.start_time.isoformat(),
+                        "end_time": spike.end_time.isoformat(),
+                        "error_count": spike.error_count,
+                        "template_ids": spike.template_ids
+                    }
+                    for spike in spikes
+                ]
+            )
 
         # Detecta e agrupa stack traces (RF-04.3)
         stack_traces = self._detect_stack_traces(entries)
+        
+        if stack_traces:
+            logger.info(
+                "stack_traces_detected",
+                stack_trace_count=len(stack_traces)
+            )
+        
+        logger.info(
+            "analysis_completed",
+            total_entries=len(entries),
+            error_count=error_count,
+            warning_count=warning_count,
+            spike_count=len(spikes),
+            stack_trace_count=len(stack_traces)
+        )
 
         return AnalysisResult(
             total_entries=len(entries),
