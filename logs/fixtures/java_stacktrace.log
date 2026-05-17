@@ -1,0 +1,28 @@
+2024-01-15 10:00:00.123 [main] INFO  com.example.Application - Starting Application v2.1.0
+2024-01-15 10:00:01.456 [main] INFO  com.example.config.DatabaseConfig - Initializing connection pool
+2024-01-15 10:00:02.789 [main] INFO  com.example.Application - Application started successfully
+2024-01-15 10:00:05.001 [http-nio-8080-exec-1] INFO  com.example.controller.UserController - GET /api/users
+2024-01-15 10:00:05.234 [http-nio-8080-exec-1] DEBUG com.example.repository.UserRepository - Executing query: SELECT * FROM users WHERE active = true
+2024-01-15 10:00:05.567 [http-nio-8080-exec-1] INFO  com.example.controller.UserController - Response: 200 OK (566ms)
+2024-01-15 10:00:10.100 [http-nio-8080-exec-2] INFO  com.example.controller.OrderController - POST /api/orders
+2024-01-15 10:00:10.200 [http-nio-8080-exec-2] ERROR com.example.service.OrderService - Failed to process order
+Exception in thread http-nio-8080-exec-2 java.lang.NullPointerException: Cannot invoke method on null reference
+    at com.example.service.OrderService.validateOrder(OrderService.java:89)
+    at com.example.service.OrderService.processOrder(OrderService.java:45)
+    at com.example.controller.OrderController.createOrder(OrderController.java:32)
+    at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+    at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:897)
+Caused by: java.lang.IllegalStateException: Customer not found for id: 12345
+    at com.example.repository.CustomerRepository.findById(CustomerRepository.java:67)
+    at com.example.service.OrderService.validateOrder(OrderService.java:87)
+    ... 4 more
+2024-01-15 10:00:10.300 [http-nio-8080-exec-2] ERROR com.example.controller.OrderController - Response: 500 Internal Server Error
+2024-01-15 10:00:15.000 [scheduler-1] INFO  com.example.scheduler.HealthCheck - Health check passed
+2024-01-15 10:00:20.100 [http-nio-8080-exec-3] WARNING com.example.service.CacheService - Cache miss for key: products:featured
+2024-01-15 10:00:20.500 [http-nio-8080-exec-3] INFO  com.example.controller.ProductController - Response: 200 OK (400ms)
+2024-01-15 10:00:25.000 [http-nio-8080-exec-4] ERROR com.example.service.PaymentService - Payment processing failed
+Exception in thread http-nio-8080-exec-4 java.io.IOException: Connection refused
+    at com.example.gateway.PaymentGateway.charge(PaymentGateway.java:55)
+    at com.example.service.PaymentService.processPayment(PaymentService.java:78)
+    at com.example.controller.PaymentController.pay(PaymentController.java:41)
+2024-01-15 10:00:30.000 [main] INFO  com.example.Application - Shutting down gracefully

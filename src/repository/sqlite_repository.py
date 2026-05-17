@@ -176,6 +176,23 @@ class SQLiteLogRepository(LogRepository):
 
         return [self._row_to_response(row) for row in rows]
 
+    async def count(self) -> int:
+        """Retorna o total de registros no repositório.
+
+        Returns:
+            Número total de logs persistidos.
+
+        Raises:
+            StorageError: Se a operação de contagem falhar.
+        """
+        try:
+            async with aiosqlite.connect(self._db_path) as conn:
+                async with conn.execute("SELECT COUNT(*) FROM logs") as cursor:
+                    row = await cursor.fetchone()
+                    return row[0] if row else 0
+        except aiosqlite.Error as exc:
+            raise StorageError(f"Falha ao contar registros: {exc}") from exc
+
     async def delete(self, log_id: str) -> bool:
         """Remove um log pelo seu UUID.
 

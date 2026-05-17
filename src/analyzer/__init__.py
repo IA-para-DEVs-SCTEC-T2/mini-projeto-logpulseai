@@ -3,7 +3,4 @@
 from src.analyzer.base import LogAnalyzer
 from src.analyzer.detector import AnomalyDetector
 
-__all__ = [
-    "LogAnalyzer",
-    "AnomalyDetector",
-]
+__all__ = ["LogAnalyzer", "AnomalyDetector"]

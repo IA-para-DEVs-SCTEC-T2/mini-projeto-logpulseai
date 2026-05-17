@@ -1,1 +1,1 @@
-
+"""Testes para modelos Pydantic."""

@@ -25,11 +25,16 @@ class LogAnalyzer(ABC):
         """Analisa um conjunto de entradas de log e detecta anomalias.
 
         Args:
-            entries: Lista de entradas de log normalizadas.
+            entries: Lista de entradas de log normalizadas pelo parser.
             templates: Templates extraídos pelo parser (Drain3).
 
         Returns:
             Resultado da análise contendo distribuição de severidade,
             spikes detectados, stack traces agrupados e metadados.
+
+        Note:
+            Se entries contiver menos de 2 entradas, o resultado
+            deve ter insufficient_data=True e não executar detecção
+            de anomalias.
         """
         ...
