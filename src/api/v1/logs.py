@@ -72,7 +72,7 @@ async def upload_log_text(
     return record
 
 
-@router.get("", response_model=LogListResponse, summary="Listagem paginada de logs")
+@router.get("/", response_model=LogListResponse, summary="Listagem paginada de logs")
 async def list_logs(
     page: int = 1,
     page_size: int = 20,
