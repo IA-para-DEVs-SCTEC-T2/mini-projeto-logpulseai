@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from src.ai.base import AIEngine
 from src.analyzer.base import LogAnalyzer
 from src.core.dependencies import get_ai_engine, get_analyzer, get_parser, get_repository
+from src.core.logging import get_logger
 from src.models.schemas import (
     LogAnalysisResponse,
     LogListResponse,
@@ -16,6 +17,8 @@ from src.models.schemas import (
 )
 from src.parsers.base import LogParser
 from src.repository.base import LogRepository
+
+logger = get_logger(__name__)
 
 router = APIRouter()
 
@@ -31,20 +34,35 @@ async def upload_log_file(
 ) -> LogAnalysisResponse:
     """Processa upload de arquivo de log (.log ou .txt)."""
     filename = file.filename or ""
+    logger.info("upload_file_request", filename=filename, content_type=file.content_type)
+    
     if not filename.lower().endswith((".log", ".txt")):
+        logger.warning("upload_file_rejected", filename=filename, reason="invalid_extension")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Apenas arquivos .log e .txt são aceitos.")
+    
     content = (await file.read()).decode("utf-8", errors="replace")
+    content_length = len(content)
+    logger.info("upload_file_read", filename=filename, content_length=content_length)
+    
     if not content.strip():
+        logger.warning("upload_file_rejected", filename=filename, reason="empty_content")
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail="Arquivo vazio ou sem conteúdo válido.")
+    
     entries = parser.parse(content)
     templates = parser.get_templates()
     analysis = analyzer.analyze(entries, templates)
     diagnosis = ai_engine.diagnose(analysis, entries)
     log_id = await repo.create(content, analysis, diagnosis)
+    
+    logger.info("upload_file_success", filename=filename, log_id=log_id, 
+                entries_count=len(entries), error_count=analysis.error_count)
+    
     record = await repo.get_by_id(log_id)
     if record is None:
+        logger.error("upload_file_error", filename=filename, log_id=log_id, 
+                     reason="failed_to_retrieve_after_creation")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Falha ao recuperar registro após criação.")
     return record
@@ -60,13 +78,22 @@ async def upload_log_text(
     repo: Annotated[LogRepository, Depends(get_repository)],
 ) -> LogAnalysisResponse:
     """Processa envio de log via texto puro."""
+    content_length = len(payload.content)
+    logger.info("upload_text_request", content_length=content_length)
+    
     entries = parser.parse(payload.content)
     templates = parser.get_templates()
     analysis = analyzer.analyze(entries, templates)
     diagnosis = ai_engine.diagnose(analysis, entries)
     log_id = await repo.create(payload.content, analysis, diagnosis)
+    
+    logger.info("upload_text_success", log_id=log_id, 
+                entries_count=len(entries), error_count=analysis.error_count)
+    
     record = await repo.get_by_id(log_id)
     if record is None:
+        logger.error("upload_text_error", log_id=log_id, 
+                     reason="failed_to_retrieve_after_creation")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Falha ao recuperar registro após criação.")
     return record

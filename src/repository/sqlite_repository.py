@@ -11,9 +11,12 @@ from datetime import datetime, timezone
 
 import aiosqlite
 
+from src.core.logging import get_logger
 from src.exceptions import StorageError
 from src.models.schemas import AIDiagnosis, AnalysisResult, LogAnalysisResponse
 from src.repository.base import LogRepository
+
+logger = get_logger(__name__)
 
 # DDL executado na inicialização do repositório
 _CREATE_TABLE_SQL = """
@@ -64,12 +67,19 @@ class SQLiteLogRepository(LogRepository):
         Raises:
             StorageError: Se a criação da tabela ou índice falhar.
         """
+        logger.info("repository_initialization_started", db_path=self._db_path)
         try:
             async with aiosqlite.connect(self._db_path) as conn:
                 await conn.execute(_CREATE_TABLE_SQL)
                 await conn.execute(_CREATE_INDEX_SQL)
                 await conn.commit()
+            logger.info("repository_initialization_completed", db_path=self._db_path)
         except aiosqlite.Error as exc:
+            logger.error(
+                "repository_initialization_failed",
+                db_path=self._db_path,
+                error=str(exc)
+            )
             raise StorageError(f"Falha ao inicializar banco de dados '{self._db_path}': {exc}") from exc
 
     async def create(
@@ -96,6 +106,13 @@ class SQLiteLogRepository(LogRepository):
         analysis_json = analysis.model_dump_json()
         diagnosis_json = diagnosis.model_dump_json()
 
+        logger.info(
+            "repository_create_started",
+            log_id=log_id,
+            content_length=len(content),
+            total_entries=analysis.total_entries
+        )
+
         try:
             async with aiosqlite.connect(self._db_path) as conn:
                 await conn.execute(
@@ -106,7 +123,14 @@ class SQLiteLogRepository(LogRepository):
                     (log_id, content, analysis_json, diagnosis_json, created_at),
                 )
                 await conn.commit()
+            
+            logger.info("repository_create_completed", log_id=log_id)
         except aiosqlite.Error as exc:
+            logger.error(
+                "repository_create_failed",
+                log_id=log_id,
+                error=str(exc)
+            )
             raise StorageError(f"Falha ao criar registro de log: {exc}") from exc
 
         return log_id
@@ -123,6 +147,8 @@ class SQLiteLogRepository(LogRepository):
         Raises:
             StorageError: Se a operação de leitura falhar.
         """
+        logger.debug("repository_get_by_id_started", log_id=log_id)
+        
         try:
             async with aiosqlite.connect(self._db_path) as conn:
                 conn.row_factory = aiosqlite.Row
@@ -132,11 +158,18 @@ class SQLiteLogRepository(LogRepository):
                 ) as cursor:
                     row = await cursor.fetchone()
         except aiosqlite.Error as exc:
+            logger.error(
+                "repository_get_by_id_failed",
+                log_id=log_id,
+                error=str(exc)
+            )
             raise StorageError(f"Falha ao recuperar log '{log_id}': {exc}") from exc
 
         if row is None:
+            logger.debug("repository_get_by_id_not_found", log_id=log_id)
             return None
 
+        logger.debug("repository_get_by_id_completed", log_id=log_id)
         return self._row_to_response(row)
 
     async def list_paginated(
@@ -158,6 +191,13 @@ class SQLiteLogRepository(LogRepository):
         """
         offset = (page - 1) * page_size
 
+        logger.debug(
+            "repository_list_paginated_started",
+            page=page,
+            page_size=page_size,
+            offset=offset
+        )
+
         try:
             async with aiosqlite.connect(self._db_path) as conn:
                 conn.row_factory = aiosqlite.Row
@@ -172,7 +212,20 @@ class SQLiteLogRepository(LogRepository):
                 ) as cursor:
                     rows = await cursor.fetchall()
         except aiosqlite.Error as exc:
+            logger.error(
+                "repository_list_paginated_failed",
+                page=page,
+                page_size=page_size,
+                error=str(exc)
+            )
             raise StorageError(f"Falha ao listar logs (page={page}, page_size={page_size}): {exc}") from exc
+
+        logger.debug(
+            "repository_list_paginated_completed",
+            page=page,
+            page_size=page_size,
+            results_count=len(rows)
+        )
 
         return [self._row_to_response(row) for row in rows]
 
@@ -205,6 +258,8 @@ class SQLiteLogRepository(LogRepository):
         Raises:
             StorageError: Se a operação de remoção falhar.
         """
+        logger.info("repository_delete_started", log_id=log_id)
+        
         try:
             async with aiosqlite.connect(self._db_path) as conn:
                 cursor = await conn.execute(
@@ -214,7 +269,17 @@ class SQLiteLogRepository(LogRepository):
                 rows_affected = cursor.rowcount
                 await conn.commit()
         except aiosqlite.Error as exc:
+            logger.error(
+                "repository_delete_failed",
+                log_id=log_id,
+                error=str(exc)
+            )
             raise StorageError(f"Falha ao remover log '{log_id}': {exc}") from exc
+
+        if rows_affected > 0:
+            logger.info("repository_delete_completed", log_id=log_id)
+        else:
+            logger.debug("repository_delete_not_found", log_id=log_id)
 
         return rows_affected > 0
 

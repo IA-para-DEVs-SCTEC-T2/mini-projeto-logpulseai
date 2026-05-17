@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Dict, List, Optional, Tuple
 
 from drain3 import TemplateMiner  # type: ignore[import-untyped]
 from drain3.template_miner_config import TemplateMinerConfig  # type: ignore[import-untyped]
 
+from src.core.logging import get_logger
 from src.models.schemas import LogEntry, LogTemplate, SeverityLevel
 from src.parsers.base import LogParser
 from src.parsers.normalizer import (
@@ -16,6 +18,8 @@ from src.parsers.normalizer import (
     normalize_severity,
     parse_timestamp,
 )
+
+logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # Regex para detecção de formato
@@ -83,8 +87,14 @@ class Drain3LogParser(LogParser):
             Lista de LogEntry normalizadas. Linhas malformadas são
             ignoradas sem interromper o processamento.
         """
+        logger.info("Iniciando parsing de log", content_length=len(raw_content))
+        
         entries: List[LogEntry] = []
-        for line in raw_content.splitlines():
+        lines = raw_content.splitlines()
+        total_lines = len(lines)
+        errors = 0
+        
+        for line_num, line in enumerate(lines, 1):
             line = line.strip()
             if not line:
                 continue
@@ -92,9 +102,25 @@ class Drain3LogParser(LogParser):
                 entry = self._parse_line(line)
                 if entry is not None:
                     entries.append(entry)
-            except Exception:
+            except Exception as exc:
                 # Linha malformada: registra e continua (RNF-03)
+                errors += 1
+                logger.warning(
+                    "Falha ao parsear linha",
+                    line_number=line_num,
+                    error=str(exc),
+                    raw_line=line[:100]  # Limita tamanho do log
+                )
                 continue
+        
+        logger.info(
+            "Parsing concluído",
+            total_lines=total_lines,
+            entries_parsed=len(entries),
+            errors=errors,
+            templates_extracted=len(self._templates)
+        )
+        
         return entries
 
     def get_templates(self) -> List[LogTemplate]:

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import logging
 import math
 import random
 import socket
@@ -14,6 +13,7 @@ import openai
 
 from src.ai.base import AIEngine
 from src.ai.health_check import check_ollama_tcp
+from src.core.logging import get_logger
 from src.exceptions import AIEngineTimeoutError, AIEngineUnavailableError
 from src.models.schemas import AIDiagnosis, AnalysisResult, Hypothesis, LogEntry, SeverityLevel
 
@@ -43,7 +43,7 @@ _OTHER_RATIO = 0.10   # 10% de outros (INFO, DEBUG)
 _ERROR_LEVELS = {SeverityLevel.ERROR, SeverityLevel.CRITICAL}
 _WARNING_LEVELS = {SeverityLevel.WARNING}
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # Prompt do sistema
@@ -299,11 +299,25 @@ class OllamaAIEngine(AIEngine):
             AIEngineUnavailableError: Se o Ollama não estiver disponível.
             AIEngineTimeoutError: Se todas as tentativas esgotarem o timeout.
         """
+        logger.info(
+            "diagnosis_started",
+            model=self._model,
+            total_entries=len(sample_entries),
+            error_count=analysis.error_count,
+            warning_count=analysis.warning_count
+        )
+        
         # Verifica disponibilidade antes de processar
         _check_ollama_availability()
 
         # Amostragem estratificada
         sampled = _stratified_sample(sample_entries)
+        
+        logger.debug(
+            "sample_created",
+            original_count=len(sample_entries),
+            sampled_count=len(sampled)
+        )
 
         # Constrói prompts
         user_prompt = _build_user_prompt(analysis, sampled)
@@ -312,7 +326,12 @@ class OllamaAIEngine(AIEngine):
         last_exception: Exception | None = None
 
         for attempt in range(1, _MAX_RETRIES + 1):
-            logger.info("Tentativa %d de %d ao Ollama", attempt, _MAX_RETRIES)
+            logger.info(
+                "ollama_request_attempt",
+                attempt=attempt,
+                max_retries=_MAX_RETRIES,
+                model=self._model
+            )
             try:
                 response = self._client.chat.completions.create(
                     model=self._model,
@@ -324,19 +343,40 @@ class OllamaAIEngine(AIEngine):
                 )
 
                 content = response.choices[0].message.content or ""
-                return _parse_llm_response(content)
+                diagnosis = _parse_llm_response(content)
+                
+                logger.info(
+                    "diagnosis_completed",
+                    model=self._model,
+                    attempt=attempt,
+                    hypotheses_count=len(diagnosis.hypotheses),
+                    confidence=diagnosis.confidence
+                )
+                
+                return diagnosis
 
             except (openai.APITimeoutError, openai.APIConnectionError) as exc:
                 last_exception = exc
                 logger.warning(
-                    "Tentativa %d falhou: %s. %s",
-                    attempt,
-                    type(exc).__name__,
-                    "Aguardando antes de tentar novamente..." if attempt < _MAX_RETRIES else "Esgotadas todas as tentativas.",
+                    "ollama_request_failed",
+                    attempt=attempt,
+                    max_retries=_MAX_RETRIES,
+                    error_type=type(exc).__name__,
+                    error=str(exc),
+                    will_retry=attempt < _MAX_RETRIES
                 )
                 if attempt < _MAX_RETRIES:
-                    time.sleep(_RETRY_DELAYS[attempt - 1])
+                    delay = _RETRY_DELAYS[attempt - 1]
+                    logger.debug("retry_backoff", delay_seconds=delay)
+                    time.sleep(delay)
 
+        logger.error(
+            "diagnosis_failed",
+            model=self._model,
+            max_retries=_MAX_RETRIES,
+            last_error=str(last_exception)
+        )
+        
         raise AIEngineTimeoutError(
             f"Ollama não respondeu após {_MAX_RETRIES} tentativas. "
             f"Último erro: {last_exception}"
