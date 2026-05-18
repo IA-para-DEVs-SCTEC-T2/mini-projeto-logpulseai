@@ -918,7 +918,7 @@ Este documento contém as tarefas de implementação para o LogPulse IA, uma API
     - **Estimativa:** 1h
     - _Requisitos: RNF-06_
 
-- [ ] 18. Validar cobertura de testes
+- [x] 18. Validar cobertura de testes
   - **Descrição:** Garantir cobertura mínima de testes e adicionar testes onde necessário
   - **Critérios de Aceitação:**
     - ✅ Cobertura total ≥ 30% (requisito mínimo)
