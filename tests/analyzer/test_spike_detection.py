@@ -16,7 +16,7 @@ import pytest
 from hypothesis import given, settings, assume
 from hypothesis import strategies as st
 
-from src.analyzer.detector import AnomalyDetector, _detect_spikes
+from src.analyzer.detector import AnomalyDetector
 from src.models.schemas import LogEntry, SeverityLevel, Spike
 
 
@@ -28,6 +28,17 @@ _SPIKE_WINDOW_SECONDS = 60
 _SPIKE_THRESHOLD = 10
 _ERROR_LEVELS = {SeverityLevel.ERROR, SeverityLevel.CRITICAL}
 _BASE_TIME = datetime(2024, 1, 15, 10, 0, 0, tzinfo=timezone.utc)
+
+
+# ---------------------------------------------------------------------------
+# Função auxiliar para testes
+# ---------------------------------------------------------------------------
+
+
+def _detect_spikes(entries: List[LogEntry]) -> List[Spike]:
+    """Função auxiliar que chama o método _detect_spikes do detector."""
+    detector = AnomalyDetector()
+    return detector._detect_spikes(entries)
 
 
 # ---------------------------------------------------------------------------
