@@ -1,15 +1,19 @@
-"""Endpoints de logs da API v1 do LogPulse IA."""
+"""Rotas de logs da API v1 do LogPulse IA (View layer).
+
+Define apenas as rotas HTTP e delega toda a lógica ao LogsController.
+Padrão MVC: Route (View) → Controller → Service → Repository (Model).
+"""
 
 from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, UploadFile, status
 
 from src.ai.base import AIEngine
 from src.analyzer.base import LogAnalyzer
+from src.api.v1.controllers.logs_controller import LogsController
 from src.core.dependencies import get_ai_engine, get_analyzer, get_parser, get_repository
-from src.core.logging import get_logger
 from src.models.schemas import (
     LogAnalysisResponse,
     LogListResponse,
@@ -17,14 +21,56 @@ from src.models.schemas import (
 )
 from src.parsers.base import LogParser
 from src.repository.base import LogRepository
-
-logger = get_logger(__name__)
+from src.services.log_analysis_service import LogAnalysisService
+from src.services.log_storage_service import LogStorageService
 
 router = APIRouter()
 
 
-@router.post("/file", response_model=LogAnalysisResponse, status_code=status.HTTP_201_CREATED,
-             summary="Envio de log via arquivo")
+def _build_controller(
+    parser: LogParser,
+    analyzer: LogAnalyzer,
+    ai_engine: AIEngine,
+    repository: LogRepository,
+) -> LogsController:
+    """Constrói o controller com services configurados.
+
+    Monta a cadeia MVC completa:
+    Controller → Services → Repository/Parser/Analyzer/AI
+    """
+    analysis_service = LogAnalysisService(
+        parser=parser,
+        analyzer=analyzer,
+        ai_engine=ai_engine,
+        repository=repository,
+    )
+    storage_service = LogStorageService(repository=repository)
+    return LogsController(
+        analysis_service=analysis_service,
+        storage_service=storage_service,
+    )
+
+
+def _build_storage_controller(repository: LogRepository) -> LogsController:
+    """Constrói controller apenas com storage service (para operações CRUD).
+
+    Usado por endpoints que não precisam do pipeline de análise.
+    """
+    storage_service = LogStorageService(repository=repository)
+    # analysis_service não é necessário para operações de leitura/deleção
+    # Passamos None e o controller não o utilizará
+    return LogsController(
+        analysis_service=None,  # type: ignore[arg-type]
+        storage_service=storage_service,
+    )
+
+
+@router.post(
+    "/file",
+    response_model=LogAnalysisResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Envio de log via arquivo",
+)
 async def upload_log_file(
     file: UploadFile,
     parser: Annotated[LogParser, Depends(get_parser)],
@@ -33,43 +79,16 @@ async def upload_log_file(
     repo: Annotated[LogRepository, Depends(get_repository)],
 ) -> LogAnalysisResponse:
     """Processa upload de arquivo de log (.log ou .txt)."""
-    filename = file.filename or ""
-    logger.info("upload_file_request", filename=filename, content_type=file.content_type)
-    
-    if not filename.lower().endswith((".log", ".txt")):
-        logger.warning("upload_file_rejected", filename=filename, reason="invalid_extension")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Apenas arquivos .log e .txt são aceitos.")
-    
-    content = (await file.read()).decode("utf-8", errors="replace")
-    content_length = len(content)
-    logger.info("upload_file_read", filename=filename, content_length=content_length)
-    
-    if not content.strip():
-        logger.warning("upload_file_rejected", filename=filename, reason="empty_content")
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            detail="Arquivo vazio ou sem conteúdo válido.")
-    
-    entries = parser.parse(content)
-    templates = parser.get_templates()
-    analysis = analyzer.analyze(entries, templates)
-    diagnosis = ai_engine.diagnose(analysis, entries)
-    log_id = await repo.create(content, analysis, diagnosis)
-    
-    logger.info("upload_file_success", filename=filename, log_id=log_id, 
-                entries_count=len(entries), error_count=analysis.error_count)
-    
-    record = await repo.get_by_id(log_id)
-    if record is None:
-        logger.error("upload_file_error", filename=filename, log_id=log_id, 
-                     reason="failed_to_retrieve_after_creation")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail="Falha ao recuperar registro após criação.")
-    return record
+    controller = _build_controller(parser, analyzer, ai_engine, repo)
+    return await controller.upload_file(file)
 
 
-@router.post("/text", response_model=LogAnalysisResponse, status_code=status.HTTP_201_CREATED,
-             summary="Envio de log via texto")
+@router.post(
+    "/text",
+    response_model=LogAnalysisResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Envio de log via texto",
+)
 async def upload_log_text(
     payload: LogTextUpload,
     parser: Annotated[LogParser, Depends(get_parser)],
@@ -78,65 +97,49 @@ async def upload_log_text(
     repo: Annotated[LogRepository, Depends(get_repository)],
 ) -> LogAnalysisResponse:
     """Processa envio de log via texto puro."""
-    content_length = len(payload.content)
-    logger.info("upload_text_request", content_length=content_length)
-    
-    entries = parser.parse(payload.content)
-    templates = parser.get_templates()
-    analysis = analyzer.analyze(entries, templates)
-    diagnosis = ai_engine.diagnose(analysis, entries)
-    log_id = await repo.create(payload.content, analysis, diagnosis)
-    
-    logger.info("upload_text_success", log_id=log_id, 
-                entries_count=len(entries), error_count=analysis.error_count)
-    
-    record = await repo.get_by_id(log_id)
-    if record is None:
-        logger.error("upload_text_error", log_id=log_id, 
-                     reason="failed_to_retrieve_after_creation")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail="Falha ao recuperar registro após criação.")
-    return record
+    controller = _build_controller(parser, analyzer, ai_engine, repo)
+    return await controller.upload_text(payload)
 
 
-@router.get("/", response_model=LogListResponse, summary="Listagem paginada de logs")
+@router.get(
+    "/",
+    response_model=LogListResponse,
+    summary="Listagem paginada de logs",
+)
 async def list_logs(
     page: int = 1,
     page_size: int = 20,
     repo: LogRepository = Depends(get_repository),
 ) -> LogListResponse:
     """Lista logs com paginação."""
-    if page < 1:
-        page = 1
-    if page_size < 1 or page_size > 100:
-        page_size = 20
-    items = await repo.list_paginated(page, page_size)
-    total = len(items) + ((page - 1) * page_size)
-    pages = (total + page_size - 1) // page_size if total > 0 else 0
-    return LogListResponse(items=items, total=total, page=page, page_size=page_size, pages=pages)
+    controller = _build_storage_controller(repo)
+    return await controller.list_logs(page, page_size)
 
 
-@router.get("/{log_id}", response_model=LogAnalysisResponse, summary="Consulta log por ID",
-            responses={404: {"description": "Log não encontrado"}})
+@router.get(
+    "/{log_id}",
+    response_model=LogAnalysisResponse,
+    summary="Consulta log por ID",
+    responses={404: {"description": "Log não encontrado"}},
+)
 async def get_log_by_id(
     log_id: str,
     repo: LogRepository = Depends(get_repository),
 ) -> LogAnalysisResponse:
     """Recupera um log pelo ID."""
-    record = await repo.get_by_id(log_id)
-    if record is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Log '{log_id}' não encontrado.")
-    return record
+    controller = _build_storage_controller(repo)
+    return await controller.get_by_id(log_id)
 
 
-@router.delete("/{log_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Remoção de log pelo ID")
+@router.delete(
+    "/{log_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remoção de log pelo ID",
+)
 async def delete_log(
     log_id: str,
     repo: LogRepository = Depends(get_repository),
 ) -> None:
     """Remove um log pelo ID."""
-    deleted = await repo.delete(log_id)
-    if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Log '{log_id}' não encontrado.")
+    controller = _build_storage_controller(repo)
+    await controller.delete(log_id)

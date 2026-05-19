@@ -14,7 +14,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from src.api.dependencies import override_repository
-from src.api.v1.logs_list import router
+from src.api.v1.logs import router
 from src.models.schemas import (
     AIDiagnosis,
     AnalysisResult,

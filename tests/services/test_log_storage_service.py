@@ -53,6 +53,7 @@ def mock_repository() -> AsyncMock:
     repo = AsyncMock()
     repo.get_by_id.return_value = _make_response()
     repo.list_paginated.return_value = [_make_response(f"uuid-{i}") for i in range(5)]
+    repo.count.return_value = 5
     repo.delete.return_value = True
     return repo
 
@@ -144,10 +145,9 @@ class TestListLogs:
         """Calcula corretamente o total de páginas."""
         # 15 itens no total, page_size=5 → 3 páginas
         items_page = [_make_response(f"uuid-{i}") for i in range(5)]
-        all_items = [_make_response(f"uuid-{i}") for i in range(15)]
 
-        # list_paginated é chamado 2x: uma para a página, outra para o total
-        mock_repository.list_paginated.side_effect = [items_page, all_items]
+        mock_repository.list_paginated.return_value = items_page
+        mock_repository.count.return_value = 15
         service = LogStorageService(repository=mock_repository)
 
         result = await service.list_logs(page=1, page_size=5)
@@ -161,6 +161,7 @@ class TestListLogs:
     ) -> None:
         """Retorna 0 páginas quando não há registros."""
         mock_repository.list_paginated.return_value = []
+        mock_repository.count.return_value = 0
         service = LogStorageService(repository=mock_repository)
 
         result = await service.list_logs(page=1, page_size=20)

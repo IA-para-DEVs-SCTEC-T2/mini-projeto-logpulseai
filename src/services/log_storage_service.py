@@ -128,14 +128,7 @@ class LogStorageService:
     async def _get_total_count(self) -> int:
         """Obtém o total de registros no repositório.
 
-        Usa list_paginated com page_size grande para estimar o total.
-        Implementações futuras podem adicionar método count() ao repositório.
-
         Returns:
-            Total estimado de registros.
+            Total de registros persistidos.
         """
-        # Estratégia: busca página 1 com tamanho grande para contar
-        # Nota: idealmente o repositório teria um método count()
-        # Por ora, usamos uma abordagem pragmática
-        all_items = await self._repository.list_paginated(page=1, page_size=10000)
-        return len(all_items)
+        return await self._repository.count()
