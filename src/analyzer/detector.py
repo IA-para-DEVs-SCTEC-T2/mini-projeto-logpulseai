@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 from datetime import timedelta
-from typing import Dict, List
 
 from src.analyzer.base import LogAnalyzer
 from src.core.logging import get_logger
@@ -52,7 +51,7 @@ class AnomalyDetector(LogAnalyzer):
     - Validação de dados insuficientes (RF-04.5)
     """
 
-    def analyze(self, entries: List[LogEntry], templates: List[LogTemplate]) -> AnalysisResult:
+    def analyze(self, entries: list[LogEntry], templates: list[LogTemplate]) -> AnalysisResult:
         """Analisa um stream de logs e detecta anomalias.
 
         Args:
@@ -146,7 +145,7 @@ class AnomalyDetector(LogAnalyzer):
             insufficient_data=False,
         )
 
-    def _calculate_severity_distribution(self, entries: List[LogEntry]) -> Dict[SeverityLevel, int]:
+    def _calculate_severity_distribution(self, entries: list[LogEntry]) -> dict[SeverityLevel, int]:
         """Calcula a distribuição de entradas por nível de severidade.
 
         Args:
@@ -155,12 +154,12 @@ class AnomalyDetector(LogAnalyzer):
         Returns:
             Dicionário mapeando SeverityLevel para contagem de ocorrências.
         """
-        distribution: Dict[SeverityLevel, int] = defaultdict(int)
+        distribution: dict[SeverityLevel, int] = defaultdict(int)
         for entry in entries:
             distribution[entry.severity] += 1
         return dict(distribution)
 
-    def _group_by_template(self, entries: List[LogEntry]) -> Dict[str, List[LogEntry]]:
+    def _group_by_template(self, entries: list[LogEntry]) -> dict[str, list[LogEntry]]:
         """Agrupa entradas de log por template_id.
 
         Args:
@@ -169,13 +168,13 @@ class AnomalyDetector(LogAnalyzer):
         Returns:
             Dicionário mapeando template_id para lista de entradas.
         """
-        groups: Dict[str, List[LogEntry]] = defaultdict(list)
+        groups: dict[str, list[LogEntry]] = defaultdict(list)
         for entry in entries:
             if entry.template_id:
                 groups[entry.template_id].append(entry)
         return dict(groups)
 
-    def _detect_spikes(self, entries: List[LogEntry]) -> List[Spike]:
+    def _detect_spikes(self, entries: list[LogEntry]) -> list[Spike]:
         """Detecta spikes de erro usando janela deslizante.
 
         Um spike é definido como ≥10 erros (ERROR ou CRITICAL) em uma
@@ -199,7 +198,7 @@ class AnomalyDetector(LogAnalyzer):
         # Ordena por timestamp
         error_entries.sort(key=lambda e: e.timestamp or e.timestamp)  # type: ignore[arg-type, return-value]
 
-        spikes: List[Spike] = []
+        spikes: list[Spike] = []
         window = timedelta(seconds=_SPIKE_WINDOW_SECONDS)
         n = len(error_entries)
         i = 0
@@ -244,7 +243,7 @@ class AnomalyDetector(LogAnalyzer):
 
         return spikes
 
-    def _detect_stack_traces(self, entries: List[LogEntry]) -> List[str]:
+    def _detect_stack_traces(self, entries: list[LogEntry]) -> list[str]:
         """Detecta e agrupa stack traces multi-linha.
 
         Suporta:
@@ -258,7 +257,7 @@ class AnomalyDetector(LogAnalyzer):
         Returns:
             Lista de stack traces agrupados como strings.
         """
-        stack_traces: List[str] = []
+        stack_traces: list[str] = []
         i = 0
         n = len(entries)
 

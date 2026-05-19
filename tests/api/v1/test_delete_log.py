@@ -12,8 +12,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from src.api.dependencies import override_repository
 from src.api.v1.logs import router
+from src.core.dependencies import get_repository
 
 
 @pytest.fixture
@@ -26,8 +26,11 @@ def mock_repository() -> AsyncMock:
 def client(mock_repository: AsyncMock) -> TestClient:
     """Cria um TestClient com o repositório mockado."""
     app = FastAPI()
-    app.include_router(router)
-    override_repository(mock_repository)
+    app.include_router(router, prefix="/api/v1/logs")
+    
+    # Override da dependência do repositório
+    app.dependency_overrides[get_repository] = lambda: mock_repository
+    
     return TestClient(app)
 
 

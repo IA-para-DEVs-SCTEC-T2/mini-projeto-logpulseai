@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 import json
-from datetime import timezone
 
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from src.models.schemas import SeverityLevel
-from src.parsers.drain3_parser import Drain3LogParser
 from src.parsers.base import LogParser
-
+from src.parsers.drain3_parser import Drain3LogParser
 
 # ---------------------------------------------------------------------------
 # Fixtures
