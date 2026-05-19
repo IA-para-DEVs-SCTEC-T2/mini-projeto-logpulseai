@@ -1,4 +1,8 @@
-"""Hierarquia de exceções customizadas do LogPulse IA."""
+"""Hierarquia de exceções customizadas do LogPulse IA.
+
+Todas as exceções do sistema herdam de LogPulseError,
+permitindo captura genérica quando necessário.
+"""
 
 
 class LogPulseError(Exception):
@@ -14,12 +18,40 @@ class SourceError(LogPulseError):
 
 
 class ParserError(LogPulseError):
-    """Erro ao parsear linha de log."""
+    """Erro ao parsear linha de log individual."""
 
 
-class AIEngineError(LogPulseError):
-    """Erro ao comunicar com LLM (API key inválida, timeout, serviço indisponível)."""
+class ParsingError(LogPulseError):
+    """Erro ao processar conteúdo de log (nenhuma entrada válida, formato inválido)."""
+
+
+class ValidationError(LogPulseError):
+    """Erro de validação de dados de entrada."""
+
+
+class NotFoundError(LogPulseError):
+    """Recurso não encontrado."""
+
+
+class StorageError(LogPulseError):
+    """Erro ao acessar o banco de dados (leitura, escrita, conexão)."""
+
+
+class AnalysisError(LogPulseError):
+    """Erro durante a análise do log stream."""
 
 
 class AnalyzerError(LogPulseError):
-    """Erro durante a análise do log stream."""
+    """Erro no componente analyzer (legado, mantido por compatibilidade)."""
+
+
+class AIEngineError(LogPulseError):
+    """Erro genérico ao comunicar com LLM."""
+
+
+class AIEngineTimeoutError(AIEngineError):
+    """LLM não respondeu dentro do tempo limite."""
+
+
+class AIEngineUnavailableError(AIEngineError):
+    """Serviço de LLM indisponível (Ollama não está rodando)."""
