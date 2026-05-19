@@ -1,4 +1,8 @@
-"""Hierarquia de exceções customizadas do LogPulse IA."""
+"""Hierarquia de exceções customizadas do LogPulse IA.
+
+Todas as exceções do sistema herdam de LogPulseError,
+permitindo captura genérica quando necessário.
+"""
 
 
 class LogPulseError(Exception):
@@ -14,31 +18,11 @@ class SourceError(LogPulseError):
 
 
 class ParserError(LogPulseError):
-    """Erro ao parsear linha de log."""
+    """Erro ao parsear linha de log individual."""
 
 
-class ParsingError(ParserError):
-    """Erro ao parsear linha de log (alias para ParserError)."""
-
-
-class AIEngineError(LogPulseError):
-    """Erro ao comunicar com LLM (API key inválida, timeout, serviço indisponível)."""
-
-
-class AIEngineUnavailableError(AIEngineError):
-    """Erro quando o serviço de IA (Ollama) não está disponível."""
-
-
-class AIEngineTimeoutError(AIEngineError):
-    """Erro quando a chamada ao serviço de IA excede o timeout."""
-
-
-class AnalyzerError(LogPulseError):
-    """Erro durante a análise do log stream."""
-
-
-class StorageError(LogPulseError):
-    """Erro ao persistir ou recuperar dados do repositório."""
+class ParsingError(LogPulseError):
+    """Erro ao processar conteúdo de log (nenhuma entrada válida, formato inválido)."""
 
 
 class ValidationError(LogPulseError):
@@ -46,12 +30,28 @@ class ValidationError(LogPulseError):
 
 
 class NotFoundError(LogPulseError):
-    """Erro quando um recurso não é encontrado."""
+    """Recurso não encontrado."""
 
 
-class ParsingError(LogPulseError):
-    """Erro ao fazer parsing de dados."""
+class StorageError(LogPulseError):
+    """Erro ao acessar o banco de dados (leitura, escrita, conexão)."""
 
 
 class AnalysisError(LogPulseError):
-    """Erro durante a análise de logs."""
+    """Erro durante a análise do log stream."""
+
+
+class AnalyzerError(LogPulseError):
+    """Erro no componente analyzer (legado, mantido por compatibilidade)."""
+
+
+class AIEngineError(LogPulseError):
+    """Erro genérico ao comunicar com LLM."""
+
+
+class AIEngineTimeoutError(AIEngineError):
+    """LLM não respondeu dentro do tempo limite."""
+
+
+class AIEngineUnavailableError(AIEngineError):
+    """Serviço de LLM indisponível (Ollama não está rodando)."""

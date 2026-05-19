@@ -6,7 +6,7 @@ from src.core.retry import calculate_backoff_delay, retry_with_backoff
 
 __all__ = [
     "Settings",
-    "calculate_backoff_delay",
+    "get_settings",
     "configure_logging",
     "get_logger",
     "get_settings",
