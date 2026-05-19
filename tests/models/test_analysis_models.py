@@ -7,7 +7,7 @@ Valida os requisitos RF-04.2 e RF-04.4:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from hypothesis import given, settings
@@ -21,12 +21,11 @@ from src.models.schemas import (
     Spike,
 )
 
-
 # ---------------------------------------------------------------------------
 # Constantes
 # ---------------------------------------------------------------------------
 
-_NOW = datetime(2024, 1, 15, 10, 0, 0, tzinfo=timezone.utc)
+_NOW = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
 _LATER = _NOW + timedelta(seconds=60)
 
 
@@ -217,7 +216,7 @@ class TestAnalysisResultModel:
 
 
 @given(
-    start=st.datetimes(timezones=st.just(timezone.utc)),
+    start=st.datetimes(timezones=st.just(UTC)),
     delta=st.timedeltas(min_value=timedelta(seconds=1), max_value=timedelta(hours=24)),
     count=st.integers(min_value=10, max_value=10000),
 )

@@ -5,8 +5,7 @@ Cobre get_by_id, list_logs com paginação e delete_log.
 
 from __future__ import annotations
 
-import math
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -18,10 +17,8 @@ from src.models.schemas import (
     Hypothesis,
     LogAnalysisResponse,
     LogListResponse,
-    SeverityLevel,
 )
 from src.services.log_storage_service import LogStorageService
-
 
 # ---------------------------------------------------------------------------
 # Fixtures e helpers
@@ -44,7 +41,7 @@ def _make_response(log_id: str = "uuid-123") -> LogAnalysisResponse:
             suggested_fix="Correção sugerida.",
             confidence=0.8,
         ),
-        created_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=timezone.utc),
+        created_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
         total_entries=5,
         summary="Problema detectado.",
     )

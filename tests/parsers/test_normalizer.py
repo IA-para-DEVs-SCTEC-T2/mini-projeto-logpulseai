@@ -2,19 +2,17 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from src.models.schemas import SeverityLevel
 from src.parsers.normalizer import (
     extract_timestamp_from_line,
     normalize_severity,
     parse_timestamp,
 )
-from src.models.schemas import SeverityLevel
-
 
 # ===========================================================================
 # normalize_severity
@@ -193,7 +191,7 @@ def test_all_aliases_never_inferred(alias: str) -> None:
     assert inferred is False
 
 
-@given(st.datetimes(timezones=st.just(timezone.utc)))
+@given(st.datetimes(timezones=st.just(UTC)))
 @settings(max_examples=30)
 def test_parse_timestamp_iso_roundtrip(dt: datetime) -> None:
     """Propriedade: datetime → ISO string → parse_timestamp preserva data."""

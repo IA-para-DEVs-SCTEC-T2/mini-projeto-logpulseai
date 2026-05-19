@@ -7,9 +7,7 @@ timeout, retry, parsing de resposta e validação de schema.
 from __future__ import annotations
 
 import json
-import socket
-from datetime import datetime, timezone
-from typing import List
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
 import openai
@@ -18,20 +16,18 @@ from pydantic import ValidationError
 
 from src.ai.base import AIEngine
 from src.ai.ollama_engine import (
-    OllamaAIEngine,
     _MAX_RETRIES,
     _MAX_SAMPLE_ENTRIES,
+    OllamaAIEngine,
     _stratified_sample,
 )
 from src.exceptions import AIEngineTimeoutError, AIEngineUnavailableError
 from src.models.schemas import (
     AIDiagnosis,
     AnalysisResult,
-    Hypothesis,
     LogEntry,
     SeverityLevel,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers de fixture
@@ -43,7 +39,7 @@ def _make_entry(severity: SeverityLevel, message: str = "test log") -> LogEntry:
     return LogEntry(
         raw_content=message,
         severity=severity,
-        timestamp=datetime(2024, 1, 15, 10, 0, 0, tzinfo=timezone.utc),
+        timestamp=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
         message=message,
     )
 

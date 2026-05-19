@@ -11,8 +11,7 @@ Cobre todos os critérios de aceitação da Tarefa 5:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from hypothesis import given, settings
@@ -22,19 +21,18 @@ from src.analyzer.base import LogAnalyzer
 from src.analyzer.detector import AnomalyDetector
 from src.models.schemas import AnalysisResult, LogEntry, LogTemplate, SeverityLevel
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-_BASE_TIME = datetime(2024, 1, 15, 10, 0, 0, tzinfo=timezone.utc)
+_BASE_TIME = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
 
 
 def make_entry(
     raw_content: str = "test log line",
     severity: SeverityLevel = SeverityLevel.INFO,
-    timestamp: Optional[datetime] = None,
-    template_id: Optional[str] = None,
+    timestamp: datetime | None = None,
+    template_id: str | None = None,
 ) -> LogEntry:
     """Cria um LogEntry para uso nos testes."""
     return LogEntry(
@@ -49,8 +47,8 @@ def make_error_entries_in_window(
     count: int,
     window_seconds: int = 59,
     severity: SeverityLevel = SeverityLevel.ERROR,
-    start_time: Optional[datetime] = None,
-) -> List[LogEntry]:
+    start_time: datetime | None = None,
+) -> list[LogEntry]:
     """Cria `count` entradas de erro distribuídas dentro de `window_seconds`."""
     base = start_time or _BASE_TIME
     entries = []

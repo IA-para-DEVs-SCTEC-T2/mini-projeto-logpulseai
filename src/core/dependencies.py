@@ -18,7 +18,7 @@ Example:
 
 from __future__ import annotations
 
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from src.ai.base import AIEngine
 from src.ai.ollama_engine import OllamaAIEngine

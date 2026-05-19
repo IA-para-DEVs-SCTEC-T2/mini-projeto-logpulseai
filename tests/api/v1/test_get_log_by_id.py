@@ -6,15 +6,15 @@ e estrutura da resposta JSON.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from src.api.dependencies import override_repository
 from src.api.v1.logs import router
+from src.core.dependencies import get_repository
 from src.models.schemas import (
     AIDiagnosis,
     AnalysisResult,
@@ -58,7 +58,7 @@ def sample_response() -> LogAnalysisResponse:
             suggested_fix="Aumentar pool de conexões para 50",
             confidence=0.85,
         ),
-        created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
+        created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=UTC),
         total_entries=10,
         summary="Erro de conexão com banco de dados",
     )
@@ -68,8 +68,13 @@ def sample_response() -> LogAnalysisResponse:
 def client(mock_repository: AsyncMock) -> TestClient:
     """Cria um TestClient com o repositório mockado."""
     app = FastAPI()
-    app.include_router(router)
-    override_repository(mock_repository)
+    app.include_router(router, prefix="/api/v1/logs")
+    
+    # Override the dependency
+    async def override_get_repository():
+        yield mock_repository
+    
+    app.dependency_overrides[get_repository] = override_get_repository
     return TestClient(app)
 
 
