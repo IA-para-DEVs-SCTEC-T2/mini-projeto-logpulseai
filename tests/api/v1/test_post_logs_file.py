@@ -7,7 +7,7 @@ e integração com pipeline de análise.
 from __future__ import annotations
 
 import io
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -43,7 +43,7 @@ def mock_repository() -> AsyncMock:
             suggested_fix="Aumentar timeout",
             confidence=0.8,
         ),
-        created_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=timezone.utc),
+        created_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
         total_entries=5,
         summary="Erro de conexão detectado",
     )

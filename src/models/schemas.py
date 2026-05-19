@@ -9,20 +9,18 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import Enum
+from typing import Annotated, Dict, List, Optional
 
-from typing import Dict, List, Optional
+
 
 try:
     from typing import Annotated
 except ImportError:
-    from typing_extensions import Annotated
+    from typing import Annotated
+
+from typing import Annotated
 
 from pydantic import BaseModel, Field, field_validator, model_validator
-
-from typing import Annotated, Dict, List, Optional
-
-
-from pydantic import BaseModel, Field, field_validator, model_validator  # noqa: F401
 
 # ============================================================================
 # Enums
@@ -53,9 +51,9 @@ class LogEntry(BaseModel):
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="UUID único da entrada")
     raw_content: str = Field(..., min_length=1, description="Conteúdo bruto da linha de log")
-    template_id: Optional[str] = Field(default=None, description="ID do template Drain3 associado")
+    template_id: str | None = Field(default=None, description="ID do template Drain3 associado")
     severity: SeverityLevel = Field(default=SeverityLevel.INFO, description="Nível de severidade")
-    timestamp: Optional[datetime] = Field(default=None, description="Timestamp extraído do log")
+    timestamp: datetime | None = Field(default=None, description="Timestamp extraído do log")
     message: str = Field(default="", description="Mensagem principal do log")
     level_inferred: bool = Field(
         default=False, description="True se o nível foi inferido (não estava no log)"
@@ -85,14 +83,14 @@ class LogTemplate(BaseModel):
     template_id: str = Field(..., description="Identificador único do template")
     pattern: str = Field(..., description="Padrão do template com placeholders")
     occurrences: int = Field(default=0, ge=0, description="Número de ocorrências deste template")
-    sample_messages: List[str] = Field(
+    sample_messages: list[str] = Field(
         default_factory=list,
         description="Até 5 mensagens de exemplo deste template",
     )
 
     @field_validator("sample_messages")
     @classmethod
-    def limit_samples(cls, v: List[str]) -> List[str]:
+    def limit_samples(cls, v: list[str]) -> list[str]:
         """Garante no máximo 5 amostras por template."""
         return v[:5]
 
@@ -112,12 +110,12 @@ class Spike(BaseModel):
     start_time: datetime = Field(..., description="Início da janela do spike")
     end_time: datetime = Field(..., description="Fim da janela do spike")
     error_count: int = Field(..., ge=10, description="Número de erros no período (mínimo 10)")
-    template_ids: List[str] = Field(
+    template_ids: list[str] = Field(
         default_factory=list, description="Templates de log envolvidos no spike"
     )
 
     @model_validator(mode="after")
-    def validate_time_range(self) -> "Spike":
+    def validate_time_range(self) -> Spike:
         """Garante que end_time é posterior a start_time."""
         if self.end_time <= self.start_time:
             raise ValueError("end_time deve ser posterior a start_time")
@@ -132,16 +130,16 @@ class AnalysisResult(BaseModel):
     """
 
     total_entries: int = Field(default=0, ge=0, description="Total de entradas analisadas")
-    severity_distribution: Dict[SeverityLevel, int] = Field(
+    severity_distribution: dict[SeverityLevel, int] = Field(
         default_factory=dict, description="Contagem de entradas por nível de severidade"
     )
     error_count: int = Field(default=0, ge=0, description="Total de erros (ERROR + CRITICAL)")
     warning_count: int = Field(default=0, ge=0, description="Total de warnings")
-    spikes: List[Spike] = Field(default_factory=list, description="Spikes de erro detectados")
-    stack_traces: List[str] = Field(
+    spikes: list[Spike] = Field(default_factory=list, description="Spikes de erro detectados")
+    stack_traces: list[str] = Field(
         default_factory=list, description="Stack traces agrupados (Python, Java, Go)"
     )
-    templates: List[LogTemplate] = Field(
+    templates: list[LogTemplate] = Field(
         default_factory=list, description="Templates extraídos pelo Drain3"
     )
     insufficient_data: bool = Field(
@@ -166,7 +164,7 @@ class Hypothesis(BaseModel):
     description: str = Field(..., min_length=1, description="Descrição da hipótese de causa raiz")
     probability: str = Field(..., description="Probabilidade estimada: 'alta', 'média' ou 'baixa'")
     action: str = Field(..., min_length=1, description="Ação sugerida para investigar/corrigir")
-    related_line: Optional[int] = Field(
+    related_line: int | None = Field(
         default=None, description="Número da linha relacionada ao problema (opcional)"
     )
 
@@ -197,7 +195,7 @@ class AIDiagnosis(BaseModel):
 
     summary: str = Field(..., min_length=1, description="Resumo claro do problema identificado")
     probable_cause: str = Field(..., min_length=1, description="Causa raiz mais provável")
-    hypotheses: Annotated[List[Hypothesis], Field(min_length=3)] = Field(
+    hypotheses: Annotated[list[Hypothesis], Field(min_length=3)] = Field(
         ..., description="Lista de hipóteses (mínimo 3)"
     )
     suggested_fix: str = Field(default="", description="Sugestão de correção ou próximos passos")
@@ -207,7 +205,7 @@ class AIDiagnosis(BaseModel):
 
     @field_validator("hypotheses")
     @classmethod
-    def validate_hypotheses(cls, v: List[Hypothesis]) -> List[Hypothesis]:
+    def validate_hypotheses(cls, v: list[Hypothesis]) -> list[Hypothesis]:
         """Garante que todas as hipóteses têm action não vazio."""
         for h in v:
             if not h.action.strip():
@@ -282,7 +280,7 @@ class LogListParams(BaseModel):
 class LogListResponse(BaseModel):
     """Schema de response para listagem paginada de logs."""
 
-    items: List[LogAnalysisResponse] = Field(..., description="Lista de logs da página atual")
+    items: list[LogAnalysisResponse] = Field(..., description="Lista de logs da página atual")
     total: int = Field(..., ge=0, description="Total de registros")
     page: int = Field(..., ge=1, description="Página atual")
     page_size: int = Field(..., ge=1, description="Itens por página")

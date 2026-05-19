@@ -1,12 +1,16 @@
-"""Aplicação principal do LogPulse IA.
+"""Ponto de entrada para execução direta com uvicorn.
+
+
+Uso:
+    uvicorn src.api.app:app --reload --port 8000
 
 Este módulo inicializa a aplicação FastAPI com todos os routers,
 middleware de logging e configurações necessárias.
 """
 
 import time
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -101,94 +105,18 @@ async def log_requests(request: Request, call_next):  # type: ignore[no-untyped-
     except Exception as exc:
         duration_ms = (time.time() - start_time) * 1000
 
-        logger.error(
-            "request_failed",
-            method=request.method,
-            path=request.url.path,
-            error_type=type(exc).__name__,
-            error=str(exc),
-            duration_ms=round(duration_ms, 2),
-        )
-        raise
 
+Ou diretamente:
+    python -m src.main
+"""
 
-# Exception handlers para mapear exceções customizadas para HTTP status codes
-@app.exception_handler(ParsingError)
-async def parsing_error_handler(request: Request, exc: ParsingError) -> JSONResponse:
-    """Handler para erros de parsing de logs."""
-    logger.warning("parsing_error", path=request.url.path, error=str(exc))
-    return JSONResponse(
-        status_code=422,
-        content={"detail": str(exc)},
-    )
-
-
-@app.exception_handler(AIEngineTimeoutError)
-async def ai_timeout_error_handler(request: Request, exc: AIEngineTimeoutError) -> JSONResponse:
-    """Handler para timeout do Ollama."""
-    logger.error("ai_engine_timeout", path=request.url.path, error=str(exc))
-    return JSONResponse(
-        status_code=504,
-        content={"detail": str(exc)},
-    )
-
-
-@app.exception_handler(AIEngineUnavailableError)
-async def ai_unavailable_error_handler(
-    request: Request, exc: AIEngineUnavailableError
-) -> JSONResponse:
-    """Handler para Ollama indisponível."""
-    logger.error("ai_engine_unavailable", path=request.url.path, error=str(exc))
-    return JSONResponse(
-        status_code=503,
-        content={"detail": str(exc)},
-    )
-
-
-@app.exception_handler(StorageError)
-async def storage_error_handler(request: Request, exc: StorageError) -> JSONResponse:
-    """Handler para erros de persistência."""
-    logger.error("storage_error", path=request.url.path, error=str(exc))
-    return JSONResponse(
-        status_code=500,
-        content={"detail": f"Erro de armazenamento: {exc}"},
-    )
-
-
-@app.exception_handler(LogPulseError)
-async def logpulse_error_handler(request: Request, exc: LogPulseError) -> JSONResponse:
-    """Handler genérico para erros do LogPulse."""
-    logger.error(
-        "logpulse_error", path=request.url.path, error_type=type(exc).__name__, error=str(exc)
-    )
-    return JSONResponse(
-        status_code=500,
-        content={"detail": str(exc)},
-    )
-
-
-# Health check endpoint
-@app.get("/health", tags=["Health"])
-async def health_check() -> dict[str, str]:
-    """Endpoint de health check.
-
-    Returns:
-        Status da aplicação.
-    """
-    logger.debug("health_check_requested")
-    return {"status": "healthy", "version": "0.1.0"}
-
-
-# TODO: Registrar routers da API quando implementados
-# from src.api.v1.logs.routes import router as logs_router
-# app.include_router(logs_router, prefix="/api/v1/logs", tags=["Logs"])
-
+from src.api.app import app  # noqa: F401
 
 if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "src.main:app",
+        "src.api.app:app",
         host="0.0.0.0",
         port=8000,
         reload=True,

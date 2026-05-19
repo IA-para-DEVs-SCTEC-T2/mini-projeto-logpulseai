@@ -7,7 +7,7 @@ como JSON para armazenamento no banco de dados.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import aiosqlite
 
@@ -102,7 +102,7 @@ class SQLiteLogRepository(LogRepository):
             StorageError: Se a operação de escrita falhar.
         """
         log_id = str(uuid.uuid4())
-        created_at = datetime.now(timezone.utc).isoformat()
+        created_at = datetime.now(UTC).isoformat()
         analysis_json = analysis.model_dump_json()
         diagnosis_json = diagnosis.model_dump_json()
 
@@ -220,14 +220,17 @@ class SQLiteLogRepository(LogRepository):
             )
             raise StorageError(f"Falha ao listar logs (page={page}, page_size={page_size}): {exc}") from exc
 
+        # Converte para lista para permitir len()
+        rows_list = list(rows)
+        
         logger.debug(
             "repository_list_paginated_completed",
             page=page,
             page_size=page_size,
-            results_count=len(rows)
+            results_count=len(rows_list)
         )
 
-        return [self._row_to_response(row) for row in rows]
+        return [self._row_to_response(row) for row in rows_list]
 
     async def count(self) -> int:
         """Retorna o total de registros no repositório.
@@ -313,7 +316,7 @@ class SQLiteLogRepository(LogRepository):
             created_at = raw_ts
 
         if created_at.tzinfo is None:
-            created_at = created_at.replace(tzinfo=timezone.utc)
+            created_at = created_at.replace(tzinfo=UTC)
 
         return LogAnalysisResponse(
             id=row["id"],

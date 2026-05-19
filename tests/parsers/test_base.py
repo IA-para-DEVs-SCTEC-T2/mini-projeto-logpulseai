@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List
-
 import pytest
 
 from src.models.schemas import LogEntry, LogTemplate
@@ -13,11 +11,11 @@ from src.parsers.base import LogParser
 class ConcreteLogParser(LogParser):
     """Implementação concreta de LogParser para testes."""
 
-    def parse(self, raw_content: str) -> List[LogEntry]:
+    def parse(self, raw_content: str) -> list[LogEntry]:
         """Implementação simples para testes."""
         return []
 
-    def get_templates(self) -> List[LogTemplate]:
+    def get_templates(self) -> list[LogTemplate]:
         """Implementação simples para testes."""
         return []
 
@@ -63,7 +61,7 @@ class TestLogParserInterface:
         """Propriedade: Subclasse sem implementar parse gera erro."""
 
         class IncompleteParser(LogParser):
-            def get_templates(self) -> List[LogTemplate]:
+            def get_templates(self) -> list[LogTemplate]:
                 return []
 
         with pytest.raises(TypeError):
@@ -73,7 +71,7 @@ class TestLogParserInterface:
         """Propriedade: Subclasse sem implementar get_templates gera erro."""
 
         class IncompleteParser(LogParser):
-            def parse(self, raw_content: str) -> List[LogEntry]:
+            def parse(self, raw_content: str) -> list[LogEntry]:
                 return []
 
         with pytest.raises(TypeError):
@@ -82,8 +80,8 @@ class TestLogParserInterface:
     def test_mypy_strict_compliance(self) -> None:
         """Propriedade: Interface é compatível com mypy --strict."""
         parser: LogParser = ConcreteLogParser()
-        entries: List[LogEntry] = parser.parse("test")
-        templates: List[LogTemplate] = parser.get_templates()
+        entries: list[LogEntry] = parser.parse("test")
+        templates: list[LogTemplate] = parser.get_templates()
 
         assert isinstance(entries, list)
         assert isinstance(templates, list)

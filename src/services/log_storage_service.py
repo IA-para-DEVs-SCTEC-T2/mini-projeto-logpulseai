@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Optional
 
 from src.exceptions import StorageError
 from src.models.schemas import LogAnalysisResponse, LogListResponse
@@ -37,7 +36,7 @@ class LogStorageService:
         """Inicializa o serviço com o repositório injetado."""
         self._repository = repository
 
-    async def get_by_id(self, log_id: str) -> Optional[LogAnalysisResponse]:
+    async def get_by_id(self, log_id: str) -> LogAnalysisResponse | None:
         """Recupera um log pelo seu UUID.
 
         Args:

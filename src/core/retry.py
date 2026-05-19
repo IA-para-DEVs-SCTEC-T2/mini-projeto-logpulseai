@@ -11,7 +11,8 @@ from __future__ import annotations
 import logging
 import random
 import time
-from typing import Callable, Sequence, Tuple, Type, TypeVar
+from collections.abc import Callable
+from typing import TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -68,12 +69,12 @@ def calculate_backoff_delay(
 def retry_with_backoff(
     func: Callable[[], T],
     max_retries: int = DEFAULT_MAX_RETRIES,
-    retryable_exceptions: Tuple[Type[BaseException], ...] = (Exception,),
+    retryable_exceptions: tuple[type[BaseException], ...] = (Exception,),
     base_delay: float = DEFAULT_BASE_DELAY,
     multiplier: float = DEFAULT_MULTIPLIER,
     max_delay: float = DEFAULT_MAX_DELAY,
     jitter: float = DEFAULT_JITTER,
-    on_retry: Callable[[int, Exception], None] | None = None,
+    on_retry: Callable[[int, BaseException], None] | None = None,
 ) -> T:
     """Executa uma função com retry e backoff exponencial.
 

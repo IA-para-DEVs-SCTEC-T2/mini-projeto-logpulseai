@@ -9,6 +9,6 @@ __all__ = [
     "get_settings",
     "configure_logging",
     "get_logger",
-    "calculate_backoff_delay",
+    "get_settings",
     "retry_with_backoff",
 ]

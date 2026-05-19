@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
@@ -17,7 +16,6 @@ from src.config import (
     load_config,
 )
 from src.exceptions import ConfigError
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
