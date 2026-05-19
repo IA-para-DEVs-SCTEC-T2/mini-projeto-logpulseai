@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List
 
 from src.models.schemas import AnalysisResult, LogEntry, LogTemplate
 
@@ -19,8 +18,8 @@ class LogAnalyzer(ABC):
     @abstractmethod
     def analyze(
         self,
-        entries: List[LogEntry],
-        templates: List[LogTemplate],
+        entries: list[LogEntry],
+        templates: list[LogTemplate],
     ) -> AnalysisResult:
         """Analisa um conjunto de entradas de log e detecta anomalias.
 

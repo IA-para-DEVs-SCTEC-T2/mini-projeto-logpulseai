@@ -13,12 +13,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.core.retry import (
-    DEFAULT_BASE_DELAY,
-    DEFAULT_MAX_RETRIES,
     calculate_backoff_delay,
     retry_with_backoff,
 )
-
 
 # ---------------------------------------------------------------------------
 # Testes de calculate_backoff_delay

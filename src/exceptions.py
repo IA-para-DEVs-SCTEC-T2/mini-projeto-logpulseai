@@ -25,29 +25,33 @@ class AIEngineError(LogPulseError):
     """Erro ao comunicar com LLM (API key inválida, timeout, serviço indisponível)."""
 
 
-class AIEngineTimeoutError(AIEngineError):
-    """Erro de timeout ao comunicar com o LLM."""
-
-
 class AIEngineUnavailableError(AIEngineError):
-    """Erro quando o serviço de LLM está indisponível."""
+    """Erro quando o serviço de IA (Ollama) não está disponível."""
+
+
+class AIEngineTimeoutError(AIEngineError):
+    """Erro quando a chamada ao serviço de IA excede o timeout."""
 
 
 class AnalyzerError(LogPulseError):
     """Erro durante a análise do log stream."""
 
 
-class AnalysisError(LogPulseError):
-    """Erro durante a análise do log stream (alias para AnalyzerError)."""
-
-
 class StorageError(LogPulseError):
-    """Erro de persistência (falha ao salvar/recuperar dados do SQLite)."""
+    """Erro ao persistir ou recuperar dados do repositório."""
+
+
+class ValidationError(LogPulseError):
+    """Erro de validação de dados de entrada."""
 
 
 class NotFoundError(LogPulseError):
     """Erro quando um recurso não é encontrado."""
 
 
-class ValidationError(LogPulseError):
-    """Erro de validação de dados."""
+class ParsingError(LogPulseError):
+    """Erro ao fazer parsing de dados."""
+
+
+class AnalysisError(LogPulseError):
+    """Erro durante a análise de logs."""

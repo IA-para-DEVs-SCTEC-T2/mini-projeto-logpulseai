@@ -6,7 +6,7 @@ e estrutura da resposta JSON.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -39,7 +39,7 @@ def _make_log_response(log_id: str) -> LogAnalysisResponse:
             suggested_fix="Fix teste",
             confidence=0.7,
         ),
-        created_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=timezone.utc),
+        created_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
         total_entries=5,
         summary=f"Resumo do log {log_id}",
     )

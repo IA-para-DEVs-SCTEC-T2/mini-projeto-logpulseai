@@ -12,8 +12,8 @@ Referências: RF-07.5, RF-08.1, RF-08.2, RF-08.3, RF-08.4, RNF-05, RNF-08
 
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

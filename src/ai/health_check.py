@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import logging
 import socket
-from typing import Optional
 
 import httpx
 
@@ -104,7 +103,7 @@ def check_ollama_http(
 def check_ollama_available(
     host: str = _OLLAMA_HOST,
     port: int = _OLLAMA_PORT,
-    base_url: Optional[str] = None,
+    base_url: str | None = None,
 ) -> None:
     """Verifica disponibilidade completa do Ollama (TCP + HTTP).
 

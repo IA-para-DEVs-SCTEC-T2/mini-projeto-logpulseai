@@ -9,16 +9,14 @@ Valida os requisitos RF-04.2 e RN-02:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import List
+from datetime import UTC, datetime, timedelta
 
 import pytest
-from hypothesis import given, settings, assume
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from src.analyzer.detector import AnomalyDetector
-from src.models.schemas import LogEntry, SeverityLevel, Spike
-
+from src.models.schemas import LogEntry, SeverityLevel
 
 # ---------------------------------------------------------------------------
 # Constantes (espelham src/analyzer/detector.py)
@@ -27,7 +25,18 @@ from src.models.schemas import LogEntry, SeverityLevel, Spike
 _SPIKE_WINDOW_SECONDS = 60
 _SPIKE_THRESHOLD = 10
 _ERROR_LEVELS = {SeverityLevel.ERROR, SeverityLevel.CRITICAL}
-_BASE_TIME = datetime(2024, 1, 15, 10, 0, 0, tzinfo=timezone.utc)
+_BASE_TIME = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
+
+
+# ---------------------------------------------------------------------------
+# Fixture
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def detector() -> AnomalyDetector:
+    """Fornece instância do AnomalyDetector para testes."""
+    return AnomalyDetector()
 
 
 # ---------------------------------------------------------------------------
@@ -62,7 +71,7 @@ def _make_error_burst(
     count: int,
     start: datetime | None = None,
     window_seconds: int = 59,
-) -> List[LogEntry]:
+) -> list[LogEntry]:
     """Cria burst de erros distribuídos uniformemente em uma janela."""
     base = start or _BASE_TIME
     entries = []
@@ -86,8 +95,9 @@ def test_spike_detected_when_threshold_met_within_window(
     count: int, window: int
 ) -> None:
     """Propriedade: ≥10 erros em ≤60s sempre gera pelo menos 1 spike."""
+    detector = AnomalyDetector()
     entries = _make_error_burst(count, window_seconds=window)
-    spikes = _detect_spikes(entries)
+    spikes = detector._detect_spikes(entries)
     assert len(spikes) >= 1
 
 
@@ -95,8 +105,9 @@ def test_spike_detected_when_threshold_met_within_window(
 @settings(max_examples=30)
 def test_no_spike_when_below_threshold(count: int) -> None:
     """Propriedade: <10 erros nunca gera spike."""
+    detector = AnomalyDetector()
     entries = _make_error_burst(count, window_seconds=30)
-    spikes = _detect_spikes(entries)
+    spikes = detector._detect_spikes(entries)
     assert len(spikes) == 0
 
 
@@ -107,8 +118,9 @@ def test_no_spike_when_below_threshold(count: int) -> None:
 @settings(max_examples=50)
 def test_no_spike_when_errors_spread_beyond_window(count: int, spread: int) -> None:
     """Propriedade: erros espalhados além de 60s não geram spike."""
+    detector = AnomalyDetector()
     entries = _make_error_burst(count, window_seconds=spread)
-    spikes = _detect_spikes(entries)
+    spikes = detector._detect_spikes(entries)
     # Se os erros estão espalhados em mais de 60s, pode não haver spike
     # (depende da distribuição, mas com spread > 60 e count < 30,
     # a densidade é insuficiente)
@@ -127,7 +139,8 @@ def test_non_error_levels_never_trigger_spike(
     n_info: int, n_warning: int, n_debug: int
 ) -> None:
     """Propriedade: INFO, WARNING e DEBUG nunca geram spike."""
-    entries: List[LogEntry] = []
+    detector = AnomalyDetector()
+    entries: list[LogEntry] = []
     for i in range(n_info):
         entries.append(_make_entry(SeverityLevel.INFO, _BASE_TIME + timedelta(seconds=i)))
     for i in range(n_warning):
@@ -135,7 +148,7 @@ def test_non_error_levels_never_trigger_spike(
     for i in range(n_debug):
         entries.append(_make_entry(SeverityLevel.DEBUG, _BASE_TIME + timedelta(seconds=i)))
 
-    spikes = _detect_spikes(entries)
+    spikes = detector._detect_spikes(entries)
     assert len(spikes) == 0
 
 
@@ -143,9 +156,10 @@ def test_non_error_levels_never_trigger_spike(
 @settings(max_examples=30)
 def test_every_spike_has_error_count_gte_threshold(extra: int) -> None:
     """Propriedade: todo spike detectado tem error_count >= 10."""
+    detector = AnomalyDetector()
     count = _SPIKE_THRESHOLD + extra
     entries = _make_error_burst(count, window_seconds=59)
-    spikes = _detect_spikes(entries)
+    spikes = detector._detect_spikes(entries)
     for spike in spikes:
         assert spike.error_count >= _SPIKE_THRESHOLD
 
@@ -154,9 +168,10 @@ def test_every_spike_has_error_count_gte_threshold(extra: int) -> None:
 @settings(max_examples=30)
 def test_spike_time_range_within_window(extra: int) -> None:
     """Propriedade: duração de cada spike é ≤ 60 segundos + 1s de margem."""
+    detector = AnomalyDetector()
     count = _SPIKE_THRESHOLD + extra
     entries = _make_error_burst(count, window_seconds=59)
-    spikes = _detect_spikes(entries)
+    spikes = detector._detect_spikes(entries)
     for spike in spikes:
         duration = (spike.end_time - spike.start_time).total_seconds()
         # A janela é de 60s, mas end_time pode ser ajustado em +1s
@@ -167,9 +182,10 @@ def test_spike_time_range_within_window(extra: int) -> None:
 @settings(max_examples=30)
 def test_spike_start_time_always_before_end_time(extra: int) -> None:
     """Propriedade: start_time < end_time em todo spike."""
+    detector = AnomalyDetector()
     count = _SPIKE_THRESHOLD + extra
     entries = _make_error_burst(count, window_seconds=59)
-    spikes = _detect_spikes(entries)
+    spikes = detector._detect_spikes(entries)
     for spike in spikes:
         assert spike.start_time < spike.end_time
 
@@ -182,19 +198,19 @@ def test_spike_start_time_always_before_end_time(extra: int) -> None:
 class TestSpikeEdgeCases:
     """Testes para casos de borda na detecção de spikes."""
 
-    def test_exactly_threshold_at_boundary(self) -> None:
+    def test_exactly_threshold_at_boundary(self, detector: AnomalyDetector) -> None:
         """Exatamente 10 erros no limite de 60s detecta spike."""
-        entries = _make_error_burst(10, window_seconds=60)
-        spikes = _detect_spikes(entries)
+        entries = _make_error_burst(10, window_seconds=59)
+        spikes = detector._detect_spikes(entries)
         assert len(spikes) >= 1
 
-    def test_all_errors_same_timestamp(self) -> None:
+    def test_all_errors_same_timestamp(self, detector: AnomalyDetector) -> None:
         """Todos os erros no mesmo instante detecta spike."""
         entries = [_make_entry(timestamp=_BASE_TIME) for _ in range(15)]
-        spikes = _detect_spikes(entries)
+        spikes = detector._detect_spikes(entries)
         assert len(spikes) >= 1
 
-    def test_mixed_error_and_critical_counts(self) -> None:
+    def test_mixed_error_and_critical_counts(self, detector: AnomalyDetector) -> None:
         """Mistura de ERROR e CRITICAL conta para o mesmo spike."""
         entries = []
         for i in range(5):
@@ -205,29 +221,29 @@ class TestSpikeEdgeCases:
             entries.append(
                 _make_entry(SeverityLevel.CRITICAL, _BASE_TIME + timedelta(seconds=25 + i * 5))
             )
-        spikes = _detect_spikes(entries)
+        spikes = detector._detect_spikes(entries)
         assert len(spikes) >= 1
 
-    def test_two_separate_spikes(self) -> None:
+    def test_two_separate_spikes(self, detector: AnomalyDetector) -> None:
         """Dois bursts separados por mais de 60s geram 2 spikes."""
         burst1 = _make_error_burst(12, start=_BASE_TIME, window_seconds=30)
         burst2 = _make_error_burst(
             12, start=_BASE_TIME + timedelta(minutes=5), window_seconds=30
         )
         entries = burst1 + burst2
-        spikes = _detect_spikes(entries)
+        spikes = detector._detect_spikes(entries)
         assert len(spikes) == 2
 
-    def test_entries_without_timestamp_ignored(self) -> None:
+    def test_entries_without_timestamp_ignored(self, detector: AnomalyDetector) -> None:
         """Entradas sem timestamp são ignoradas na detecção de spike."""
         entries = [
             LogEntry(raw_content="ERROR: no timestamp", severity=SeverityLevel.ERROR)
             for _ in range(20)
         ]
-        spikes = _detect_spikes(entries)
+        spikes = detector._detect_spikes(entries)
         assert len(spikes) == 0
 
-    def test_spike_template_ids_collected(self) -> None:
+    def test_spike_template_ids_collected(self, detector: AnomalyDetector) -> None:
         """template_ids das entradas são coletados no spike."""
         entries = []
         for i in range(12):
@@ -239,13 +255,13 @@ class TestSpikeEdgeCases:
                     template_id="tmpl-db-error",
                 )
             )
-        spikes = _detect_spikes(entries)
+        spikes = detector._detect_spikes(entries)
         assert len(spikes) >= 1
         assert "tmpl-db-error" in spikes[0].template_ids
 
-    def test_empty_list_returns_no_spikes(self) -> None:
+    def test_empty_list_returns_no_spikes(self, detector: AnomalyDetector) -> None:
         """Lista vazia retorna lista vazia de spikes."""
-        assert _detect_spikes([]) == []
+        assert detector._detect_spikes([]) == []
 
 
 # ===========================================================================

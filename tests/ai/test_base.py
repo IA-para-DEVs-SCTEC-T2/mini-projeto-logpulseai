@@ -6,8 +6,7 @@ deve respeitar (RF-05.1).
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import List
+from datetime import UTC, datetime
 
 import pytest
 
@@ -19,7 +18,6 @@ from src.models.schemas import (
     LogEntry,
     SeverityLevel,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -35,13 +33,13 @@ def _make_analysis() -> AnalysisResult:
     )
 
 
-def _make_entries(n: int = 3) -> List[LogEntry]:
+def _make_entries(n: int = 3) -> list[LogEntry]:
     """Cria lista de LogEntry para testes."""
     return [
         LogEntry(
             raw_content=f"ERROR: test message {i}",
             severity=SeverityLevel.ERROR,
-            timestamp=datetime(2024, 1, 15, 10, 0, i, tzinfo=timezone.utc),
+            timestamp=datetime(2024, 1, 15, 10, 0, i, tzinfo=UTC),
         )
         for i in range(n)
     ]
@@ -91,7 +89,7 @@ class TestAIEngineContract:
             def diagnose(
                 self,
                 analysis: AnalysisResult,
-                sample_entries: List[LogEntry],
+                sample_entries: list[LogEntry],
             ) -> AIDiagnosis:
                 return _make_diagnosis()
 
@@ -105,7 +103,7 @@ class TestAIEngineContract:
             def diagnose(
                 self,
                 analysis: AnalysisResult,
-                sample_entries: List[LogEntry],
+                sample_entries: list[LogEntry],
             ) -> AIDiagnosis:
                 return _make_diagnosis()
 
@@ -120,7 +118,7 @@ class TestAIEngineContract:
             def diagnose(
                 self,
                 analysis: AnalysisResult,
-                sample_entries: List[LogEntry],
+                sample_entries: list[LogEntry],
             ) -> AIDiagnosis:
                 return _make_diagnosis()
 
@@ -139,7 +137,7 @@ class TestAIEngineContract:
             def diagnose(
                 self,
                 analysis: AnalysisResult,
-                sample_entries: List[LogEntry],
+                sample_entries: list[LogEntry],
             ) -> AIDiagnosis:
                 return _make_diagnosis()
 

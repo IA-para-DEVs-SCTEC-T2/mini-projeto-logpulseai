@@ -7,8 +7,7 @@ Valida que todos os schemas Pydantic estão validando corretamente:
 - Validações customizadas (validators)
 """
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from pydantic import ValidationError
@@ -25,7 +24,6 @@ from src.models.schemas import (
     SeverityLevel,
     Spike,
 )
-
 
 # ============================================================================
 # Testes de SeverityLevel (Enum)
@@ -166,7 +164,7 @@ class TestSpike:
 
     def test_spike_valid(self) -> None:
         """Spike aceita dados válidos."""
-        start = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
         end = start + timedelta(seconds=60)
         spike = Spike(
             start_time=start,
@@ -181,7 +179,7 @@ class TestSpike:
 
     def test_spike_validates_end_time_after_start_time(self) -> None:
         """Spike valida que end_time > start_time."""
-        start = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
         end = start - timedelta(seconds=10)  # end antes de start
         with pytest.raises(ValidationError) as exc_info:
             Spike(start_time=start, end_time=end, error_count=10)
@@ -189,14 +187,14 @@ class TestSpike:
 
     def test_spike_validates_end_time_equal_start_time(self) -> None:
         """Spike rejeita end_time igual a start_time."""
-        start = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
         with pytest.raises(ValidationError) as exc_info:
             Spike(start_time=start, end_time=start, error_count=10)
         assert "end_time deve ser posterior a start_time" in str(exc_info.value)
 
     def test_spike_minimum_error_count(self) -> None:
         """Spike rejeita error_count < 10."""
-        start = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
         end = start + timedelta(seconds=60)
         with pytest.raises(ValidationError) as exc_info:
             Spike(start_time=start, end_time=end, error_count=9)

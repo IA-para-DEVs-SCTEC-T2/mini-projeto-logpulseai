@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import json
-import logging
 import re
-from typing import Dict, List, Optional, Tuple
 
 from drain3 import TemplateMiner  # type: ignore[import-untyped]
 from drain3.template_miner_config import TemplateMinerConfig  # type: ignore[import-untyped]
@@ -71,13 +69,13 @@ class Drain3LogParser(LogParser):
         config = _build_drain_config()
         self._miner = TemplateMiner(config=config)
         # template_id → {"pattern": str, "occurrences": int, "samples": list[str]}
-        self._templates: Dict[str, Dict[str, object]] = {}
+        self._templates: dict[str, dict[str, object]] = {}
 
     # ------------------------------------------------------------------
     # Interface pública
     # ------------------------------------------------------------------
 
-    def parse(self, raw_content: str) -> List[LogEntry]:
+    def parse(self, raw_content: str) -> list[LogEntry]:
         """Transforma conteúdo bruto de log em lista de LogEntry.
 
         Args:
@@ -89,7 +87,7 @@ class Drain3LogParser(LogParser):
         """
         logger.info("Iniciando parsing de log", content_length=len(raw_content))
         
-        entries: List[LogEntry] = []
+        entries: list[LogEntry] = []
         lines = raw_content.splitlines()
         total_lines = len(lines)
         errors = 0
@@ -123,15 +121,15 @@ class Drain3LogParser(LogParser):
         
         return entries
 
-    def get_templates(self) -> List[LogTemplate]:
+    def get_templates(self) -> list[LogTemplate]:
         """Retorna os templates extraídos pelo Drain3 até o momento.
 
         Returns:
             Lista de LogTemplate com pattern, occurrences e sample_messages.
         """
-        result: List[LogTemplate] = []
+        result: list[LogTemplate] = []
         for tmpl_id, data in self._templates.items():
-            samples: List[str] = data.get("samples", [])  # type: ignore[assignment]
+            samples: list[str] = data.get("samples", [])  # type: ignore[assignment]
             result.append(
                 LogTemplate(
                     template_id=tmpl_id,
@@ -147,7 +145,7 @@ class Drain3LogParser(LogParser):
     # Detecção de formato
     # ------------------------------------------------------------------
 
-    def _parse_line(self, line: str) -> Optional[LogEntry]:
+    def _parse_line(self, line: str) -> LogEntry | None:
         """Detecta o formato da linha e delega ao parser correto."""
         # Tenta JSON primeiro
         if line.startswith("{"):
@@ -166,7 +164,7 @@ class Drain3LogParser(LogParser):
     # Parsers por formato
     # ------------------------------------------------------------------
 
-    def _parse_json(self, line: str) -> Optional[LogEntry]:
+    def _parse_json(self, line: str) -> LogEntry | None:
         """Parseia linha no formato JSON estruturado."""
         try:
             data = json.loads(line)
@@ -281,7 +279,7 @@ class Drain3LogParser(LogParser):
         self._templates[template_id]["occurrences"] = count + 1
 
         # Coleta até 5 amostras
-        samples: List[str] = self._templates[template_id].get("samples", [])  # type: ignore[assignment]
+        samples: list[str] = self._templates[template_id].get("samples", [])  # type: ignore[assignment]
         if len(samples) < _MAX_SAMPLES:
             samples.append(message)
             self._templates[template_id]["samples"] = samples
@@ -294,7 +292,7 @@ class Drain3LogParser(LogParser):
 # ---------------------------------------------------------------------------
 
 
-def _extract_level_from_text(text: str) -> Tuple[SeverityLevel, bool]:
+def _extract_level_from_text(text: str) -> tuple[SeverityLevel, bool]:
     """Extrai nível de severidade de uma string de texto livre.
 
     Args:
