@@ -40,6 +40,17 @@ def detector() -> AnomalyDetector:
 
 
 # ---------------------------------------------------------------------------
+# Função auxiliar para testes
+# ---------------------------------------------------------------------------
+
+
+def _detect_spikes(entries: List[LogEntry]) -> List[Spike]:
+    """Função auxiliar que chama o método _detect_spikes do detector."""
+    detector = AnomalyDetector()
+    return detector._detect_spikes(entries)
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 

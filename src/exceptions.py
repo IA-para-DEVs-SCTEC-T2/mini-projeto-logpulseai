@@ -17,6 +17,10 @@ class ParserError(LogPulseError):
     """Erro ao parsear linha de log."""
 
 
+class ParsingError(ParserError):
+    """Erro ao parsear linha de log (alias para ParserError)."""
+
+
 class AIEngineError(LogPulseError):
     """Erro ao comunicar com LLM (API key inválida, timeout, serviço indisponível)."""
 
