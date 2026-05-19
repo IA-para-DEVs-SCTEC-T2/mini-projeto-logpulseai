@@ -14,7 +14,6 @@ from pydantic import ValidationError
 
 from src.models.schemas import AIDiagnosis, Hypothesis
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

@@ -4,10 +4,11 @@ Usa Hypothesis para gerar inputs aleatórios e validar propriedades universais
 dos schemas Pydantic.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
-from hypothesis import given, strategies as st
+from hypothesis import given
+from hypothesis import strategies as st
 from pydantic import ValidationError
 
 from src.models.schemas import (
@@ -22,7 +23,6 @@ from src.models.schemas import (
     SeverityLevel,
     Spike,
 )
-
 
 # ============================================================================
 # Estratégias customizadas
@@ -39,7 +39,7 @@ def severity_level_strategy(draw: st.DrawFn) -> SeverityLevel:
 def datetime_strategy(draw: st.DrawFn) -> datetime:
     """Gera um datetime com timezone UTC."""
     dt = draw(st.datetimes(min_value=datetime(2020, 1, 1), max_value=datetime(2030, 12, 31)))
-    return dt.replace(tzinfo=timezone.utc)
+    return dt.replace(tzinfo=UTC)
 
 
 @st.composite

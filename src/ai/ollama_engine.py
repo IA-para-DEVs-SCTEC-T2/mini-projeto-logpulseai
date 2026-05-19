@@ -5,17 +5,15 @@ from __future__ import annotations
 import json
 import math
 import random
-import socket
 import time
-from typing import List
 
 import openai
 
 from src.ai.base import AIEngine
 from src.ai.health_check import check_ollama_tcp
 from src.core.logging import get_logger
-from src.exceptions import AIEngineTimeoutError, AIEngineUnavailableError
-from src.models.schemas import AIDiagnosis, AnalysisResult, Hypothesis, LogEntry, SeverityLevel
+from src.exceptions import AIEngineTimeoutError
+from src.models.schemas import AIDiagnosis, AnalysisResult, LogEntry, SeverityLevel
 
 # ---------------------------------------------------------------------------
 # Constantes de configuração
@@ -78,7 +76,7 @@ Schema JSON esperado:
 }"""
 
 
-def _build_user_prompt(analysis: AnalysisResult, sample_entries: List[LogEntry]) -> str:
+def _build_user_prompt(analysis: AnalysisResult, sample_entries: list[LogEntry]) -> str:
     """Constrói o prompt do usuário com os dados de análise e amostras.
 
     Args:
@@ -144,7 +142,7 @@ def _build_user_prompt(analysis: AnalysisResult, sample_entries: List[LogEntry])
     return "\n".join(lines)
 
 
-def _stratified_sample(entries: List[LogEntry], max_entries: int = _MAX_SAMPLE_ENTRIES) -> List[LogEntry]:
+def _stratified_sample(entries: list[LogEntry], max_entries: int = _MAX_SAMPLE_ENTRIES) -> list[LogEntry]:
     """Realiza amostragem estratificada das entradas de log.
 
     Seleciona entradas respeitando as proporções:
@@ -281,7 +279,7 @@ class OllamaAIEngine(AIEngine):
     def diagnose(
         self,
         analysis: AnalysisResult,
-        sample_entries: List[LogEntry],
+        sample_entries: list[LogEntry],
     ) -> AIDiagnosis:
         """Gera diagnóstico inteligente a partir da análise de logs.
 

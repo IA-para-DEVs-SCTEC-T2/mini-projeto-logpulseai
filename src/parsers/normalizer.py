@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
-from typing import Optional, Tuple
+from datetime import UTC, datetime
 
 from src.models.schemas import SeverityLevel
 
@@ -62,7 +61,7 @@ _SYSLOG_MONTHS = {
 }
 
 
-def normalize_severity(raw_level: Optional[str]) -> Tuple[SeverityLevel, bool]:
+def normalize_severity(raw_level: str | None) -> tuple[SeverityLevel, bool]:
     """Normaliza um nível de severidade bruto para SeverityLevel.
 
     Args:
@@ -88,7 +87,7 @@ def normalize_severity(raw_level: Optional[str]) -> Tuple[SeverityLevel, bool]:
     return SeverityLevel.INFO, True
 
 
-def parse_timestamp(raw_ts: Optional[str]) -> Tuple[Optional[datetime], bool]:
+def parse_timestamp(raw_ts: str | None) -> tuple[datetime | None, bool]:
     """Tenta parsear um timestamp bruto em datetime com timezone.
 
     Args:
@@ -99,7 +98,7 @@ def parse_timestamp(raw_ts: Optional[str]) -> Tuple[Optional[datetime], bool]:
         inferred=True quando o timestamp foi inferido (ausente ou inválido).
     """
     if not raw_ts:
-        return datetime.now(timezone.utc), True
+        return datetime.now(UTC), True
 
     ts = raw_ts.strip()
 
@@ -115,7 +114,7 @@ def parse_timestamp(raw_ts: Optional[str]) -> Tuple[Optional[datetime], bool]:
     try:
         dt = datetime.fromisoformat(ts)
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
+            dt = dt.replace(tzinfo=UTC)
         return dt, False
     except ValueError:
         pass
@@ -125,7 +124,7 @@ def parse_timestamp(raw_ts: Optional[str]) -> Tuple[Optional[datetime], bool]:
     if m:
         try:
             dt = datetime.strptime(m.group(), "%Y/%m/%d %H:%M:%S")
-            return dt.replace(tzinfo=timezone.utc), False
+            return dt.replace(tzinfo=UTC), False
         except ValueError:
             pass
 
@@ -137,7 +136,7 @@ def parse_timestamp(raw_ts: Optional[str]) -> Tuple[Optional[datetime], bool]:
             month = _SYSLOG_MONTHS.get(parts[0], 1)
             day = int(parts[1])
             time_parts = parts[2].split(":")
-            year = datetime.now(timezone.utc).year
+            year = datetime.now(UTC).year
             dt = datetime(
                 year,
                 month,
@@ -145,17 +144,17 @@ def parse_timestamp(raw_ts: Optional[str]) -> Tuple[Optional[datetime], bool]:
                 int(time_parts[0]),
                 int(time_parts[1]),
                 int(time_parts[2]),
-                tzinfo=timezone.utc,
+                tzinfo=UTC,
             )
             return dt, False
         except (ValueError, IndexError):
             pass
 
     # Fallback: timestamp inválido → usa agora
-    return datetime.now(timezone.utc), True
+    return datetime.now(UTC), True
 
 
-def extract_timestamp_from_line(line: str) -> Tuple[Optional[datetime], bool, str]:
+def extract_timestamp_from_line(line: str) -> tuple[datetime | None, bool, str]:
     """Tenta extrair timestamp de uma linha de log em texto livre.
 
     Args:
@@ -172,4 +171,4 @@ def extract_timestamp_from_line(line: str) -> Tuple[Optional[datetime], bool, st
             remaining = line[: m.start()].strip() + " " + line[m.end() :].strip()
             return dt, inferred, remaining.strip()
 
-    return datetime.now(timezone.utc), True, line
+    return datetime.now(UTC), True, line

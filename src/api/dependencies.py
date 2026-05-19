@@ -20,7 +20,7 @@ async def get_repository() -> LogRepository:
     Returns:
         Instância de LogRepository pronta para uso.
     """
-    global _repository  # noqa: PLW0603
+    global _repository
     if _repository is None:
         repo = SQLiteLogRepository()
         await repo.initialize()
@@ -34,5 +34,5 @@ def override_repository(repo: LogRepository) -> None:
     Args:
         repo: Instância de LogRepository para substituir o padrão.
     """
-    global _repository  # noqa: PLW0603
+    global _repository
     _repository = repo

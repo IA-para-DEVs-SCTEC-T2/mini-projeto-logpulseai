@@ -9,7 +9,6 @@ Referências: RF-01.5, RF-02.5, RF-06.1
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from src.ai.base import AIEngine
 from src.analyzer.base import LogAnalyzer
@@ -25,6 +24,7 @@ from src.models.schemas import (
     AnalysisResult,
     LogAnalysisResponse,
     LogEntry,
+    LogTemplate,
 )
 from src.parsers.base import LogParser
 from src.repository.base import LogRepository
@@ -148,7 +148,7 @@ class LogAnalysisService:
     def _analyze_entries(
         self,
         entries: list[LogEntry],
-        templates: list["LogTemplate"],  # noqa: F821
+        templates: list[LogTemplate],
     ) -> AnalysisResult:
         """Executa análise de anomalias nas entradas.
 

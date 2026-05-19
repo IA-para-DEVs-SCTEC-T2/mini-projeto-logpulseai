@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List
 
 from src.models.schemas import LogEntry, LogTemplate
 
@@ -17,7 +16,7 @@ class LogParser(ABC):
     """
 
     @abstractmethod
-    def parse(self, raw_content: str) -> List[LogEntry]:
+    def parse(self, raw_content: str) -> list[LogEntry]:
         """Transforma conteúdo bruto de log em lista de LogEntry.
 
         Args:
@@ -30,7 +29,7 @@ class LogParser(ABC):
         ...
 
     @abstractmethod
-    def get_templates(self) -> List[LogTemplate]:
+    def get_templates(self) -> list[LogTemplate]:
         """Retorna os templates extraídos pelo Drain3 até o momento.
 
         Returns:

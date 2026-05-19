@@ -17,7 +17,6 @@ from src.ai.health_check import (
 )
 from src.exceptions import AIEngineUnavailableError
 
-
 # ---------------------------------------------------------------------------
 # Testes de verificação TCP
 # ---------------------------------------------------------------------------

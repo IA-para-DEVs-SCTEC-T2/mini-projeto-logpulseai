@@ -6,15 +6,12 @@ tratamento de erros e transação atômica.
 
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
-from typing import List
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from src.exceptions import (
-    AIEngineError,
     AIEngineTimeoutError,
     AIEngineUnavailableError,
     AnalysisError,
@@ -32,7 +29,6 @@ from src.models.schemas import (
 )
 from src.services.log_analysis_service import LogAnalysisService
 
-
 # ---------------------------------------------------------------------------
 # Fixtures e helpers
 # ---------------------------------------------------------------------------
@@ -43,7 +39,7 @@ def _make_entry(severity: SeverityLevel = SeverityLevel.ERROR) -> LogEntry:
     return LogEntry(
         raw_content="2024-01-15 ERROR: test message",
         severity=severity,
-        timestamp=datetime(2024, 1, 15, 10, 0, 0, tzinfo=timezone.utc),
+        timestamp=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
         message="test message",
     )
 
@@ -79,7 +75,7 @@ def _make_response(log_id: str = "uuid-123") -> LogAnalysisResponse:
         id=log_id,
         analysis=_make_analysis_result(),
         diagnosis=_make_diagnosis(),
-        created_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=timezone.utc),
+        created_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
         total_entries=5,
         summary="Problema de conexão detectado.",
     )
