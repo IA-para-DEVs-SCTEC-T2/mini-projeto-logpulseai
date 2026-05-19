@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from src.api.v1.logs import router as logs_router
+from src.api.v1.routes.logs_routes import router as logs_router
 
 router = APIRouter()
 router.include_router(logs_router, prefix="/logs", tags=["logs"])
