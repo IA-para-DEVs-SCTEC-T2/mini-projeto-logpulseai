@@ -15,9 +15,6 @@ from fastapi.testclient import TestClient
 from src.api.app import app
 from src.core.dependencies import get_repository
 from src.models.schemas import (
-    AIDiagnosis,
-    AnalysisResult,
-    Hypothesis,
     LogAnalysisResponse,
 )
 
@@ -26,21 +23,11 @@ def _make_log_response(log_id: str) -> LogAnalysisResponse:
     """Cria uma resposta de log para testes."""
     return LogAnalysisResponse(
         id=log_id,
-        analysis=AnalysisResult(total_entries=5, error_count=1, warning_count=1),
-        diagnosis=AIDiagnosis(
-            summary=f"Resumo do log {log_id}",
-            probable_cause="Causa teste",
-            hypotheses=[
-                Hypothesis(description="H1", probability="alta", action="A1"),
-                Hypothesis(description="H2", probability="média", action="A2"),
-                Hypothesis(description="H3", probability="baixa", action="A3"),
-            ],
-            suggested_fix="Fix teste",
-            confidence=0.7,
-        ),
-        created_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
-        total_entries=5,
-        summary=f"Resumo do log {log_id}",
+        analyzed_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
+        metrics={"total_logs": 5, "errors": 1, "criticals": 0},
+        issues=[],
+        recommended_actions=["Verificar logs"],
+        confidence=0.7,
     )
 
 

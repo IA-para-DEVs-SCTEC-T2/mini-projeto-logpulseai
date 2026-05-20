@@ -101,7 +101,7 @@ class LogsController:
             "upload_file_success",
             filename=filename,
             log_id=response.id,
-            total_entries=response.total_entries,
+            total_logs=response.metrics.get("total_logs", 0),
         )
         return response
 
@@ -119,7 +119,11 @@ class LogsController:
         # Delega ao service
         response = await self._analysis_service.analyze_content(payload.content)
 
-        logger.info("upload_text_success", log_id=response.id, total_entries=response.total_entries)
+        logger.info(
+            "upload_text_success",
+            log_id=response.id,
+            total_logs=response.metrics.get("total_logs", 0),
+        )
         return response
 
     async def list_logs(self, page: int = 1, page_size: int = 20) -> LogListResponse:

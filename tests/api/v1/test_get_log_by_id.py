@@ -1,7 +1,7 @@
 """Testes para GET /api/v1/logs/{id}.
 
 Valida consulta de log por UUID, retorno 404 para IDs inexistentes,
-e estrutura da resposta JSON.
+retorno 422 para UUIDs inválidos, e estrutura da resposta JSON.
 """
 
 from __future__ import annotations
@@ -22,6 +22,10 @@ from src.models.schemas import (
     LogAnalysisResponse,
 )
 
+# UUID válido para testes
+VALID_UUID = "550e8400-e29b-41d4-a716-446655440000"
+ANOTHER_VALID_UUID = "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+
 
 @pytest.fixture
 def mock_repository() -> AsyncMock:
@@ -33,34 +37,20 @@ def mock_repository() -> AsyncMock:
 def sample_response() -> LogAnalysisResponse:
     """Cria uma resposta de exemplo para testes."""
     return LogAnalysisResponse(
-        id="abc-123-def-456",
-        analysis=AnalysisResult(total_entries=10, error_count=3, warning_count=2),
-        diagnosis=AIDiagnosis(
-            summary="Erro de conexão com banco de dados",
-            probable_cause="Pool de conexões esgotado",
-            hypotheses=[
-                Hypothesis(
-                    description="Pool de conexões esgotado",
-                    probability="alta",
-                    action="Aumentar max_connections",
-                ),
-                Hypothesis(
-                    description="Timeout de rede",
-                    probability="média",
-                    action="Verificar latência de rede",
-                ),
-                Hypothesis(
-                    description="Deadlock no banco",
-                    probability="baixa",
-                    action="Analisar queries concorrentes",
-                ),
-            ],
-            suggested_fix="Aumentar pool de conexões para 50",
-            confidence=0.85,
-        ),
-        created_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=UTC),
-        total_entries=10,
-        summary="Erro de conexão com banco de dados",
+        id=VALID_UUID,
+        analyzed_at=datetime(2024, 1, 15, 10, 30, 0, tzinfo=UTC),
+        metrics={
+            "total_logs": 10,
+            "errors": 3,
+            "criticals": 0
+        },
+        issues=[],
+        recommended_actions=[
+            "Aumentar pool de conexões para 50",
+            "Verificar latência de rede",
+            "Analisar queries concorrentes"
+        ],
+        confidence=0.85
     )
 
 
@@ -90,12 +80,12 @@ class TestGetLogById:
         """Retorna 200 com dados completos quando log existe."""
         mock_repository.get_by_id.return_value = sample_response
 
-        response = client.get("/api/v1/logs/abc-123-def-456")
+        response = client.get(f"/api/v1/logs/{VALID_UUID}")
 
         assert response.status_code == 200
         data = response.json()
-        assert data["id"] == "abc-123-def-456"
-        assert data["summary"] == "Erro de conexão com banco de dados"
+        assert data["id"] == VALID_UUID
+        assert data["confidence"] == 0.85
 
     def test_returns_404_when_log_not_found(
         self,
@@ -105,11 +95,31 @@ class TestGetLogById:
         """Retorna 404 quando log não existe."""
         mock_repository.get_by_id.return_value = None
 
-        response = client.get("/api/v1/logs/inexistente-id")
+        response = client.get(f"/api/v1/logs/{ANOTHER_VALID_UUID}")
 
         assert response.status_code == 404
         data = response.json()
         assert "não encontrado" in data["detail"]
+
+    def test_returns_422_when_uuid_invalid(
+        self,
+        client: TestClient,
+        mock_repository: AsyncMock,
+    ) -> None:
+        """Retorna 422 quando UUID é inválido."""
+        # Testa vários formatos inválidos
+        invalid_uuids = [
+            "abc-123-def-456",  # formato errado
+            "not-a-uuid",       # não é UUID
+            "12345",            # muito curto
+            "550e8400-e29b-41d4-a716",  # incompleto
+        ]
+        
+        for invalid_uuid in invalid_uuids:
+            response = client.get(f"/api/v1/logs/{invalid_uuid}")
+            assert response.status_code == 422, f"Failed for: {invalid_uuid}"
+            data = response.json()
+            assert "detail" in data
 
     def test_response_contains_analysis(
         self,
@@ -117,15 +127,15 @@ class TestGetLogById:
         mock_repository: AsyncMock,
         sample_response: LogAnalysisResponse,
     ) -> None:
-        """Resposta contém dados de análise."""
+        """Resposta contém dados de métricas."""
         mock_repository.get_by_id.return_value = sample_response
 
-        response = client.get("/api/v1/logs/abc-123-def-456")
+        response = client.get(f"/api/v1/logs/{VALID_UUID}")
 
         data = response.json()
-        assert "analysis" in data
-        assert data["analysis"]["total_entries"] == 10
-        assert data["analysis"]["error_count"] == 3
+        assert "metrics" in data
+        assert data["metrics"]["total_logs"] == 10
+        assert data["metrics"]["errors"] == 3
 
     def test_response_contains_diagnosis(
         self,
@@ -133,15 +143,15 @@ class TestGetLogById:
         mock_repository: AsyncMock,
         sample_response: LogAnalysisResponse,
     ) -> None:
-        """Resposta contém dados de diagnóstico IA."""
+        """Resposta contém ações recomendadas."""
         mock_repository.get_by_id.return_value = sample_response
 
-        response = client.get("/api/v1/logs/abc-123-def-456")
+        response = client.get(f"/api/v1/logs/{VALID_UUID}")
 
         data = response.json()
-        assert "diagnosis" in data
-        assert data["diagnosis"]["probable_cause"] == "Pool de conexões esgotado"
-        assert len(data["diagnosis"]["hypotheses"]) == 3
+        assert "recommended_actions" in data
+        assert len(data["recommended_actions"]) == 3
+        assert "Aumentar pool de conexões para 50" in data["recommended_actions"]
 
     def test_response_contains_created_at(
         self,
@@ -149,14 +159,14 @@ class TestGetLogById:
         mock_repository: AsyncMock,
         sample_response: LogAnalysisResponse,
     ) -> None:
-        """Resposta contém timestamp de criação."""
+        """Resposta contém timestamp de análise."""
         mock_repository.get_by_id.return_value = sample_response
 
-        response = client.get("/api/v1/logs/abc-123-def-456")
+        response = client.get(f"/api/v1/logs/{VALID_UUID}")
 
         data = response.json()
-        assert "created_at" in data
-        assert "2024-01-15" in data["created_at"]
+        assert "analyzed_at" in data
+        assert "2024-01-15" in data["analyzed_at"]
 
     def test_repository_called_with_correct_id(
         self,
@@ -164,9 +174,9 @@ class TestGetLogById:
         mock_repository: AsyncMock,
         sample_response: LogAnalysisResponse,
     ) -> None:
-        """Repositório é chamado com o ID correto."""
+        """Repositório é chamado com o ID correto (como string)."""
         mock_repository.get_by_id.return_value = sample_response
 
-        client.get("/api/v1/logs/meu-uuid-especifico")
+        client.get(f"/api/v1/logs/{ANOTHER_VALID_UUID}")
 
-        mock_repository.get_by_id.assert_called_once_with("meu-uuid-especifico")
+        mock_repository.get_by_id.assert_called_once_with(ANOTHER_VALID_UUID)

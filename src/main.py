@@ -105,18 +105,78 @@ async def log_requests(request: Request, call_next):  # type: ignore[no-untyped-
     except Exception as exc:
         duration_ms = (time.time() - start_time) * 1000
 
+        logger.error(
+            "request_failed",
+            method=request.method,
+            path=request.url.path,
+            error=str(exc),
+            duration_ms=round(duration_ms, 2),
+        )
+        raise
 
-Ou diretamente:
-    python -m src.main
-"""
 
-from src.api.app import app  # noqa: F401
+# Exception handlers
+@app.exception_handler(AIEngineUnavailableError)
+async def ai_engine_unavailable_handler(request: Request, exc: AIEngineUnavailableError) -> JSONResponse:
+    """Handler para erro de IA indisponível."""
+    logger.error("ai_engine_unavailable", path=request.url.path, error=str(exc))
+    return JSONResponse(
+        status_code=503,
+        content={"detail": str(exc)},
+    )
+
+
+@app.exception_handler(AIEngineTimeoutError)
+async def ai_engine_timeout_handler(request: Request, exc: AIEngineTimeoutError) -> JSONResponse:
+    """Handler para timeout da IA."""
+    logger.error("ai_engine_timeout", path=request.url.path, error=str(exc))
+    return JSONResponse(
+        status_code=504,
+        content={"detail": str(exc)},
+    )
+
+
+@app.exception_handler(ParsingError)
+async def parsing_error_handler(request: Request, exc: ParsingError) -> JSONResponse:
+    """Handler para erro de parsing."""
+    logger.error("parsing_error", path=request.url.path, error=str(exc))
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc)},
+    )
+
+
+@app.exception_handler(StorageError)
+async def storage_error_handler(request: Request, exc: StorageError) -> JSONResponse:
+    """Handler para erro de storage."""
+    logger.error("storage_error", path=request.url.path, error=str(exc))
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Erro ao acessar armazenamento"},
+    )
+
+
+@app.exception_handler(LogPulseError)
+async def logpulse_error_handler(request: Request, exc: LogPulseError) -> JSONResponse:
+    """Handler genérico para erros do LogPulse."""
+    logger.error("logpulse_error", path=request.url.path, error=str(exc))
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+    )
+
+
+# Inclui routers
+from src.api.v1.router import router as v1_router  # noqa: E402
+
+app.include_router(v1_router, prefix="/api/v1")
+
 
 if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "src.api.app:app",
+        "src.main:app",
         host="0.0.0.0",
         port=8000,
         reload=True,
