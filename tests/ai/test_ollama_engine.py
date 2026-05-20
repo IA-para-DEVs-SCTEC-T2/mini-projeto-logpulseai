@@ -172,7 +172,7 @@ class TestOllamaAvailability:
         with pytest.raises(AIEngineUnavailableError) as exc_info:
             engine.diagnose(_make_analysis_result(), [])
 
-        assert "ollama serve" in str(exc_info.value).lower() or "ollama" in str(exc_info.value).lower()
+        assert "ollama" in str(exc_info.value).lower()
 
     @patch("src.ai.ollama_engine._check_ollama_availability")
     @patch("openai.OpenAI")

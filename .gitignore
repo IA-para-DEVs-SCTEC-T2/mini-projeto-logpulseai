@@ -68,3 +68,9 @@ Thumbs.db
 
 # Kiro
 .kiro/specs/**/.config.kiro
+
+# Ruff
+.ruff_cache/
+
+# Config local do usuário (não versionar)
+logpulse.toml

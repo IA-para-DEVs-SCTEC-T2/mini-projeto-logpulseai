@@ -25,8 +25,8 @@ class Settings(BaseSettings):
 
     # --- AI / Ollama ---
     ollama_base_url: str = "http://localhost:11434/v1"
-    ollama_model: str = "llama3"
-    ollama_timeout: int = 30
+    ollama_model: str = "llama3.2:3b"
+    ollama_timeout: int = 120
     ollama_max_retries: int = 3
 
     # --- Database ---
