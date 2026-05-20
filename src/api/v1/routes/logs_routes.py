@@ -4,11 +4,9 @@ Define apenas as rotas HTTP e delega toda a lógica ao LogsController.
 Padrão MVC: Route (View) → Controller → Service → Repository (Model).
 """
 
-from __future__ import annotations
-
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, UploadFile, status
+from fastapi import APIRouter, Body, Depends, UploadFile, status
 
 from src.ai.base import AIEngine
 from src.analyzer.base import LogAnalyzer
@@ -88,7 +86,7 @@ async def upload_log_file(
     summary="Envio de log via texto",
 )
 async def upload_log_text(
-    payload: LogTextUpload,
+    payload: Annotated[LogTextUpload, Body(embed=False)],
     parser: Annotated[LogParser, Depends(get_parser)],
     analyzer: Annotated[LogAnalyzer, Depends(get_analyzer)],
     ai_engine: Annotated[AIEngine, Depends(get_ai_engine)],
