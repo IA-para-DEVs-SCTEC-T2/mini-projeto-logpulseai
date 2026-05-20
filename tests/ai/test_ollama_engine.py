@@ -194,22 +194,18 @@ class TestStratifiedSampling:
 class TestOllamaAvailability:
     """Testes para verificação de disponibilidade do Ollama."""
 
-    @patch("src.ai.ollama_engine.socket.socket")
-    def test_unavailable_raises_error(self, mock_socket_class: MagicMock) -> None:
+    @patch("src.ai.ollama_engine._check_ollama_availability")
+    def test_unavailable_raises_error(self, mock_check: MagicMock) -> None:
         """AIEngineUnavailableError é lançado quando Ollama está indisponível."""
-        mock_sock = MagicMock()
-        mock_sock.connect_ex.return_value = 1  # Conexão recusada
-        mock_socket_class.return_value = mock_sock
+        mock_check.side_effect = AIEngineUnavailableError(
+            "Ollama não está disponível em http://localhost:11434. Execute: ollama serve"
+        )
 
-        with patch("src.ai.ollama_engine._check_ollama_availability") as mock_check:
-            mock_check.side_effect = AIEngineUnavailableError(
-                "Ollama não está disponível em http://localhost:11434. Execute: ollama serve"
-            )
-            engine = OllamaAIEngine()
-            with pytest.raises(AIEngineUnavailableError) as exc_info:
-                engine.diagnose(_make_analysis_result(), [])
+        engine = OllamaAIEngine()
+        with pytest.raises(AIEngineUnavailableError) as exc_info:
+            engine.diagnose(_make_analysis_result(), [])
 
-        assert "ollama serve" in str(exc_info.value).lower() or "ollama" in str(exc_info.value).lower()
+        assert "ollama" in str(exc_info.value).lower()
 
     @patch("src.ai.ollama_engine._check_ollama_availability")
     @patch("openai.OpenAI")
@@ -234,7 +230,7 @@ class TestOllamaAvailability:
 
     def test_unavailable_error_message_contains_ollama_serve(self) -> None:
         """Mensagem de erro deve orientar o usuário a executar 'ollama serve'."""
-        with patch("src.ai.ollama_engine.socket.socket") as mock_socket_class:
+        with patch("src.ai.health_check.socket.socket") as mock_socket_class:
             mock_sock = MagicMock()
             mock_sock.connect_ex.return_value = 111  # Connection refused
             mock_socket_class.return_value = mock_sock
