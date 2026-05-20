@@ -151,7 +151,7 @@ Entrada (arquivo ou texto)
 | # | Critério de Aceitação |
 |---|-----------------------|
 | 1 | WHEN a API receber uma requisição de análise, THE `AIEngine` SHALL enviar o `AnalysisResult` ao Ollama (LLaMA 3) via OpenAI SDK apontando para `http://localhost:11434`. |
-| 2 | WHEN houver pelo menos um spike ou cluster de erro, THE `AIEngine` SHALL sugerir no mínimo 3 hipóteses de causa raiz ordenadas por probabilidade estimada. |
+| 2 | WHEN houver pelo menos um spike ou cluster de erro, THE `AIEngine` SHALL sugerir no mínimo 2 hipóteses de causa raiz ordenadas por probabilidade estimada. |
 | 3 | WHEN o `AIEngine` produzir hipóteses, THE `AIEngine` SHALL incluir pelo menos um comando ou ação de investigação por hipótese. |
 | 4 | THE `AIEngine` SHALL apontar a linha provável do erro no log quando identificável. |
 | 5 | IF o Ollama não estiver disponível na porta 11434, THEN THE API SHALL retornar HTTP 503 com mensagem orientando como iniciar o serviço. |
@@ -181,7 +181,7 @@ Entrada (arquivo ou texto)
 
 | # | Critério de Aceitação |
 |---|-----------------------|
-| 1 | THE API SHALL retornar sempre um JSON com os campos: `id`, `total_entries`, `error_count`, `warning_count`, `spikes`, `anomalies`, `ai_diagnosis`. |
+| 1 | THE API SHALL retornar sempre um JSON com os campos: `id`, `analyzed_at`, `metrics` (total_logs, errors, criticals), `issues`, `recommended_actions`, `confidence`. |
 | 2 | THE API SHALL validar todos os payloads de entrada e saída com schemas Pydantic. |
 | 3 | THE API SHALL retornar HTTP 200 para análises concluídas com sucesso. |
 | 4 | THE API SHALL retornar respostas de erro com o campo `detail` descrevendo o problema de forma clara. |
@@ -251,28 +251,27 @@ Entrada (arquivo ou texto)
 ```json
 {
   "id": "uuid-gerado",
-  "created_at": "2024-01-15T10:00:00Z",
-  "total_entries": 120,
-  "error_count": 15,
-  "warning_count": 8,
-  "insufficient_data": false,
-  "spikes": [
-    "Spike de 12 erros entre 2024-01-15T10:00:00Z e 2024-01-15T10:01:00Z"
+  "analyzed_at": "2024-01-15T10:00:00Z",
+  "metrics": {
+    "total_logs": 120,
+    "errors": 15,
+    "criticals": 3
+  },
+  "issues": [
+    {
+      "title": "Database connection pool exhausted",
+      "severity": "high",
+      "occurrences": 12,
+      "first_seen": "2024-01-15T09:58:00Z",
+      "last_seen": "2024-01-15T10:00:00Z",
+      "recommendation": "Aumentar pool de conexões do banco de dados e revisar connection leaks"
+    }
   ],
-  "anomalies": [
-    "Template repetido 10x: Database connection timeout <*>"
+  "recommended_actions": [
+    "Aumentar pool de conexões do banco de dados e revisar connection leaks",
+    "Verificar configuração de max_connections e métricas do pool"
   ],
-  "ai_diagnosis": {
-    "summary": "Falha recorrente de conexão com banco de dados.",
-    "probable_cause": "Pool de conexões esgotado ou banco indisponível.",
-    "hypotheses": [
-      {
-        "description": "Pool de conexões esgotado",
-        "probability": "alta",
-        "action": "Verificar configuração de max_connections e métricas do pool."
-      }
-    ]
-  }
+  "confidence": 0.85
 }
 ```
 

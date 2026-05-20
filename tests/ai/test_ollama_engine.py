@@ -19,7 +19,7 @@ from src.ai.ollama_engine import (
     _MAX_RETRIES,
     _MAX_SAMPLE_ENTRIES,
     OllamaAIEngine,
-    _stratified_sample,
+    _filter_errors_only,
 )
 from src.exceptions import AIEngineTimeoutError, AIEngineUnavailableError
 from src.models.schemas import (
@@ -44,8 +44,8 @@ def _make_entry(severity: SeverityLevel, message: str = "test log") -> LogEntry:
     )
 
 
-def _make_valid_diagnosis_json(n_hypotheses: int = 3) -> str:
-    """Gera JSON válido de AIDiagnosis com n hipóteses."""
+def _make_valid_diagnosis_json(n_hypotheses: int = 2) -> str:
+    """Gera JSON válido de AIDiagnosis com n hipóteses (mínimo 2)."""
     hypotheses = [
         {
             "description": f"Hipótese {i + 1}",
@@ -103,87 +103,54 @@ class TestAIEngineInterface:
 
 
 # ---------------------------------------------------------------------------
-# Testes de amostragem estratificada
+# Testes de filtragem de erros
 # ---------------------------------------------------------------------------
 
 
-class TestStratifiedSampling:
-    """Testes para a função de amostragem estratificada."""
+class TestErrorFiltering:
+    """Testes para a função de filtragem de erros."""
 
     def test_empty_entries_returns_empty(self) -> None:
         """Lista vazia retorna lista vazia."""
-        assert _stratified_sample([]) == []
+        assert _filter_errors_only([]) == []
 
     def test_entries_below_max_returned_as_is(self) -> None:
-        """Menos de 50 entradas retorna todas sem amostragem."""
-        entries = [_make_entry(SeverityLevel.ERROR) for _ in range(10)]
-        result = _stratified_sample(entries)
-        assert len(result) == 10
+        """Menos de 10 erros retorna todos sem amostragem."""
+        entries = [_make_entry(SeverityLevel.ERROR) for _ in range(5)]
+        result = _filter_errors_only(entries)
+        assert len(result) == 5
 
-    def test_sampling_caps_at_50_entries(self) -> None:
-        """Amostragem limita a 50 entradas no máximo."""
+    def test_filtering_caps_at_10_entries(self) -> None:
+        """Filtragem limita a 10 entradas no máximo."""
         entries = [_make_entry(SeverityLevel.ERROR) for _ in range(200)]
-        result = _stratified_sample(entries)
+        result = _filter_errors_only(entries)
         assert len(result) <= _MAX_SAMPLE_ENTRIES
 
-    def test_stratified_70_percent_errors(self) -> None:
-        """Amostragem deve ter ~70% de erros (ERROR/CRITICAL)."""
-        errors = [_make_entry(SeverityLevel.ERROR) for _ in range(100)]
-        warnings = [_make_entry(SeverityLevel.WARNING) for _ in range(100)]
-        others = [_make_entry(SeverityLevel.INFO) for _ in range(100)]
-        entries = errors + warnings + others
+    def test_filters_only_errors_and_criticals(self) -> None:
+        """Filtragem deve retornar apenas ERROR e CRITICAL."""
+        errors = [_make_entry(SeverityLevel.ERROR) for _ in range(10)]
+        criticals = [_make_entry(SeverityLevel.CRITICAL) for _ in range(5)]
+        warnings = [_make_entry(SeverityLevel.WARNING) for _ in range(10)]
+        infos = [_make_entry(SeverityLevel.INFO) for _ in range(10)]
+        entries = errors + criticals + warnings + infos
 
-        result = _stratified_sample(entries, max_entries=50)
+        result = _filter_errors_only(entries, max_entries=20)
 
-        error_count = sum(1 for e in result if e.severity in {SeverityLevel.ERROR, SeverityLevel.CRITICAL})
-        # Deve ter pelo menos 30 erros (60% mínimo, considerando redistribuição)
-        assert error_count >= 30
+        # Deve ter apenas ERROR e CRITICAL
+        assert all(e.severity in {SeverityLevel.ERROR, SeverityLevel.CRITICAL} for e in result)
+        assert len(result) == 15  # 10 errors + 5 criticals
 
-    def test_stratified_20_percent_warnings(self) -> None:
-        """Amostragem deve ter ~20% de warnings."""
-        errors = [_make_entry(SeverityLevel.ERROR) for _ in range(100)]
-        warnings = [_make_entry(SeverityLevel.WARNING) for _ in range(100)]
-        others = [_make_entry(SeverityLevel.INFO) for _ in range(100)]
-        entries = errors + warnings + others
+    def test_filtering_with_no_errors_returns_empty(self) -> None:
+        """Filtragem retorna vazio quando não há erros."""
+        entries = [_make_entry(SeverityLevel.INFO) for _ in range(100)]
+        result = _filter_errors_only(entries)
+        assert len(result) == 0
 
-        result = _stratified_sample(entries, max_entries=50)
-
-        warning_count = sum(1 for e in result if e.severity == SeverityLevel.WARNING)
-        # Deve ter pelo menos 8 warnings (16% mínimo)
-        assert warning_count >= 8
-
-    def test_stratified_10_percent_others(self) -> None:
-        """Amostragem deve ter ~10% de outros (INFO, DEBUG)."""
-        errors = [_make_entry(SeverityLevel.ERROR) for _ in range(100)]
-        warnings = [_make_entry(SeverityLevel.WARNING) for _ in range(100)]
-        others = [_make_entry(SeverityLevel.INFO) for _ in range(100)]
-        entries = errors + warnings + others
-
-        result = _stratified_sample(entries, max_entries=50)
-
-        other_count = sum(
-            1 for e in result
-            if e.severity not in {SeverityLevel.ERROR, SeverityLevel.CRITICAL, SeverityLevel.WARNING}
-        )
-        # Deve ter pelo menos 3 outros (6% mínimo)
-        assert other_count >= 3
-
-    def test_sampling_with_only_errors(self) -> None:
-        """Amostragem funciona quando só há entradas de erro."""
+    def test_filtering_exact_max_entries(self) -> None:
+        """Filtragem retorna exatamente max_entries quando há erros suficientes."""
         entries = [_make_entry(SeverityLevel.ERROR) for _ in range(100)]
-        result = _stratified_sample(entries, max_entries=50)
-        assert len(result) == 50
-        assert all(e.severity == SeverityLevel.ERROR for e in result)
-
-    def test_sampling_exact_max_entries(self) -> None:
-        """Amostragem retorna exatamente max_entries quando há entradas suficientes."""
-        entries = (
-            [_make_entry(SeverityLevel.ERROR) for _ in range(100)]
-            + [_make_entry(SeverityLevel.WARNING) for _ in range(100)]
-            + [_make_entry(SeverityLevel.INFO) for _ in range(100)]
-        )
-        result = _stratified_sample(entries, max_entries=50)
-        assert len(result) == 50
+        result = _filter_errors_only(entries, max_entries=10)
+        assert len(result) == 10
 
 
 # ---------------------------------------------------------------------------
@@ -194,20 +161,16 @@ class TestStratifiedSampling:
 class TestOllamaAvailability:
     """Testes para verificação de disponibilidade do Ollama."""
 
-    @patch("src.ai.ollama_engine.socket.socket")
-    def test_unavailable_raises_error(self, mock_socket_class: MagicMock) -> None:
+    @patch("src.ai.ollama_engine._check_ollama_availability")
+    def test_unavailable_raises_error(self, mock_check: MagicMock) -> None:
         """AIEngineUnavailableError é lançado quando Ollama está indisponível."""
-        mock_sock = MagicMock()
-        mock_sock.connect_ex.return_value = 1  # Conexão recusada
-        mock_socket_class.return_value = mock_sock
-
-        with patch("src.ai.ollama_engine._check_ollama_availability") as mock_check:
-            mock_check.side_effect = AIEngineUnavailableError(
-                "Ollama não está disponível em http://localhost:11434. Execute: ollama serve"
-            )
-            engine = OllamaAIEngine()
-            with pytest.raises(AIEngineUnavailableError) as exc_info:
-                engine.diagnose(_make_analysis_result(), [])
+        mock_check.side_effect = AIEngineUnavailableError(
+            "Ollama não está disponível em http://localhost:11434. Execute: ollama serve"
+        )
+        
+        engine = OllamaAIEngine()
+        with pytest.raises(AIEngineUnavailableError) as exc_info:
+            engine.diagnose(_make_analysis_result(), [])
 
         assert "ollama serve" in str(exc_info.value).lower() or "ollama" in str(exc_info.value).lower()
 
@@ -232,16 +195,16 @@ class TestOllamaAvailability:
         result = engine.diagnose(_make_analysis_result(), [])
         assert isinstance(result, AIDiagnosis)
 
-    def test_unavailable_error_message_contains_ollama_serve(self) -> None:
+    @patch("src.ai.ollama_engine._check_ollama_availability")
+    def test_unavailable_error_message_contains_ollama_serve(self, mock_check: MagicMock) -> None:
         """Mensagem de erro deve orientar o usuário a executar 'ollama serve'."""
-        with patch("src.ai.ollama_engine.socket.socket") as mock_socket_class:
-            mock_sock = MagicMock()
-            mock_sock.connect_ex.return_value = 111  # Connection refused
-            mock_socket_class.return_value = mock_sock
+        mock_check.side_effect = AIEngineUnavailableError(
+            "Ollama não está disponível em http://localhost:11434. Execute: ollama serve"
+        )
 
-            engine = OllamaAIEngine()
-            with pytest.raises(AIEngineUnavailableError) as exc_info:
-                engine.diagnose(_make_analysis_result(), [])
+        engine = OllamaAIEngine()
+        with pytest.raises(AIEngineUnavailableError) as exc_info:
+            engine.diagnose(_make_analysis_result(), [])
 
         assert "ollama serve" in str(exc_info.value)
 
@@ -256,10 +219,10 @@ class TestTimeoutAndRetry:
 
     @patch("src.ai.ollama_engine._check_ollama_availability")
     @patch("src.ai.ollama_engine.time.sleep")
-    def test_timeout_raises_after_3_attempts(
+    def test_timeout_raises_after_2_attempts(
         self, mock_sleep: MagicMock, mock_check: MagicMock
     ) -> None:
-        """AIEngineTimeoutError é lançado após 3 tentativas falhadas."""
+        """AIEngineTimeoutError é lançado após 2 tentativas falhadas."""
         mock_check.return_value = None
 
         mock_client = MagicMock()
@@ -275,10 +238,10 @@ class TestTimeoutAndRetry:
 
     @patch("src.ai.ollama_engine._check_ollama_availability")
     @patch("src.ai.ollama_engine.time.sleep")
-    def test_retry_happens_3_times(
+    def test_retry_happens_2_times(
         self, mock_sleep: MagicMock, mock_check: MagicMock
     ) -> None:
-        """O cliente deve ser chamado exatamente 3 vezes antes de desistir."""
+        """O cliente deve ser chamado exatamente 2 vezes antes de desistir."""
         mock_check.return_value = None
 
         mock_client = MagicMock()
@@ -299,7 +262,7 @@ class TestTimeoutAndRetry:
     def test_backoff_delays_are_correct(
         self, mock_sleep: MagicMock, mock_check: MagicMock
     ) -> None:
-        """Backoff exponencial deve usar delays de 1s, 2s (antes das tentativas 2 e 3)."""
+        """Backoff exponencial deve usar delay de 1s (antes da tentativa 2)."""
         mock_check.return_value = None
 
         mock_client = MagicMock()
@@ -313,10 +276,10 @@ class TestTimeoutAndRetry:
         with pytest.raises(AIEngineTimeoutError):
             engine.diagnose(_make_analysis_result(), [])
 
-        # Deve ter dormido 2 vezes (entre tentativas 1→2 e 2→3)
-        assert mock_sleep.call_count == 2
+        # Deve ter dormido 1 vez (entre tentativas 1→2)
+        assert mock_sleep.call_count == 1
         sleep_calls = [call.args[0] for call in mock_sleep.call_args_list]
-        assert sleep_calls == [1, 2]
+        assert sleep_calls == [1]
 
     @patch("src.ai.ollama_engine._check_ollama_availability")
     @patch("src.ai.ollama_engine.time.sleep")
@@ -369,8 +332,8 @@ class TestResponseParsing:
         assert len(result.hypotheses) == 3
 
     @patch("src.ai.ollama_engine._check_ollama_availability")
-    def test_diagnosis_has_at_least_3_hypotheses(self, mock_check: MagicMock) -> None:
-        """Diagnóstico válido deve ter pelo menos 3 hipóteses."""
+    def test_diagnosis_has_at_least_2_hypotheses(self, mock_check: MagicMock) -> None:
+        """Diagnóstico válido deve ter pelo menos 2 hipóteses."""
         mock_check.return_value = None
 
         mock_client = MagicMock()
@@ -383,18 +346,18 @@ class TestResponseParsing:
 
         result = engine.diagnose(_make_analysis_result(), [])
 
-        assert len(result.hypotheses) >= 3
+        assert len(result.hypotheses) >= 2
 
     @patch("src.ai.ollama_engine._check_ollama_availability")
-    def test_response_with_less_than_3_hypotheses_raises_validation_error(
+    def test_response_with_less_than_2_hypotheses_raises_validation_error(
         self, mock_check: MagicMock
     ) -> None:
-        """Resposta com menos de 3 hipóteses deve lançar ValidationError."""
+        """Resposta com menos de 2 hipóteses deve lançar ValidationError."""
         mock_check.return_value = None
 
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.choices[0].message.content = _make_valid_diagnosis_json(2)
+        mock_response.choices[0].message.content = _make_valid_diagnosis_json(1)  # Apenas 1 hipótese
         mock_client.chat.completions.create.return_value = mock_response
 
         engine = OllamaAIEngine()
@@ -501,7 +464,7 @@ class TestOllamaEngineIntegration:
         result = engine.diagnose(_make_analysis_result(), entries)
 
         assert isinstance(result, AIDiagnosis)
-        assert len(result.hypotheses) >= 3
+        assert len(result.hypotheses) >= 2
 
     @patch("src.ai.ollama_engine._check_ollama_availability")
     def test_diagnose_succeeds_on_second_attempt(self, mock_check: MagicMock) -> None:
@@ -510,7 +473,7 @@ class TestOllamaEngineIntegration:
 
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.choices[0].message.content = _make_valid_diagnosis_json(3)
+        mock_response.choices[0].message.content = _make_valid_diagnosis_json(2)
 
         # Falha na primeira tentativa, sucesso na segunda
         mock_client.chat.completions.create.side_effect = [

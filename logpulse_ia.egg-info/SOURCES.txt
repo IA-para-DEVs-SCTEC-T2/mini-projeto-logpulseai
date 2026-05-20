@@ -1,8 +1,0 @@
-README.md
-pyproject.toml
-logpulse_ia.egg-info/PKG-INFO
-logpulse_ia.egg-info/SOURCES.txt
-logpulse_ia.egg-info/dependency_links.txt
-logpulse_ia.egg-info/requires.txt
-logpulse_ia.egg-info/top_level.txt
-src/__init__.py
