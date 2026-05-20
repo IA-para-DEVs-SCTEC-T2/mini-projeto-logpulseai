@@ -183,7 +183,7 @@ Entrada (arquivo ou texto)
 |---|-----------------------|
 | 1 | THE API SHALL retornar sempre um JSON com os campos: `id`, `analyzed_at`, `metrics` (total_logs, errors, criticals), `issues`, `recommended_actions`, `confidence`. |
 | 2 | THE API SHALL validar todos os payloads de entrada e saída com schemas Pydantic. |
-| 3 | THE API SHALL retornar HTTP 200 para análises concluídas com sucesso. |
+| 3 | THE API SHALL retornar HTTP 201 para análises concluídas com sucesso (POST /file e POST /text) e HTTP 200 para consultas (GET). |
 | 4 | THE API SHALL retornar respostas de erro com o campo `detail` descrevendo o problema de forma clara. |
 | 5 | THE API SHALL expor documentação interativa em `/docs` (Swagger UI) e `/redoc`. |
 

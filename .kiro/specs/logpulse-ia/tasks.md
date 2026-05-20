@@ -126,7 +126,7 @@ Este documento contém as tarefas de implementação para o LogPulse IA, uma API
     - ✅ Amostragem: filtra apenas ERROR/CRITICAL (máx 10 entradas) para otimizar performance
     - ✅ Prompt do sistema para análise de logs criado
     - ✅ Chamada ao Ollama com modelo llama3 via OpenAI SDK
-    - ✅ Timeout de 60s por chamada
+    - ✅ Timeout de 120s por chamada
     - ✅ Retry com backoff exponencial: 2 tentativas (1s, 2s)
     - ✅ Verifica disponibilidade do Ollama via TCP em `src/ai/health_check.py`
     - ✅ Valida resposta com schema Pydantic AIDiagnosis
@@ -146,7 +146,7 @@ Este documento contém as tarefas de implementação para o LogPulse IA, uma API
     - _Requisitos: RF-05.1, RNF-04_
   
   - [x] 6.3 Implementar timeout e retry com backoff exponencial
-    - ✅ Implementado em `src/ai/ollama_engine.py` — 2 tentativas com delays [1s, 2s]
+    - ✅ Implementado em `src/ai/ollama_engine.py` — 2 tentativas com delays [1s, 2s], timeout de 120s por chamada
     - _Requisitos: RF-05.7, RNF-08_
   
   - [x] 6.4 Implementar validação de disponibilidade do Ollama

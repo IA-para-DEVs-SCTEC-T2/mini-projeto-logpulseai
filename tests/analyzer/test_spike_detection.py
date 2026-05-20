@@ -94,7 +94,7 @@ def _make_error_burst(
 def test_spike_detected_when_threshold_met_within_window(
     count: int, window: int
 ) -> None:
-    """Propriedade: ≥10 erros em ≤60s sempre gera pelo menos 1 spike."""
+    """Propriedade: ≥10 erros em ≤120s sempre gera pelo menos 1 spike."""
     detector = AnomalyDetector()
     entries = _make_error_burst(count, window_seconds=window)
     spikes = detector._detect_spikes(entries)
@@ -117,11 +117,11 @@ def test_no_spike_when_below_threshold(count: int) -> None:
 )
 @settings(max_examples=50)
 def test_no_spike_when_errors_spread_beyond_window(count: int, spread: int) -> None:
-    """Propriedade: erros espalhados além de 60s não geram spike."""
+    """Propriedade: erros espalhados além de 120s não geram spike."""
     detector = AnomalyDetector()
     entries = _make_error_burst(count, window_seconds=spread)
     spikes = detector._detect_spikes(entries)
-    # Se os erros estão espalhados em mais de 60s, pode não haver spike
+    # Se os erros estão espalhados em mais de 120s, pode não haver spike
     # (depende da distribuição, mas com spread > 60 e count < 30,
     # a densidade é insuficiente)
     for spike in spikes:
@@ -174,7 +174,7 @@ def test_spike_time_range_within_window(extra: int) -> None:
     spikes = detector._detect_spikes(entries)
     for spike in spikes:
         duration = (spike.end_time - spike.start_time).total_seconds()
-        # A janela é de 60s, mas end_time pode ser ajustado em +1s
+        # A janela é de 120s, mas end_time pode ser ajustado em +1s
         assert duration <= _SPIKE_WINDOW_SECONDS + 1
 
 
@@ -199,7 +199,7 @@ class TestSpikeEdgeCases:
     """Testes para casos de borda na detecção de spikes."""
 
     def test_exactly_threshold_at_boundary(self, detector: AnomalyDetector) -> None:
-        """Exatamente 10 erros no limite de 60s detecta spike."""
+        """Exatamente 10 erros no limite de 120s detecta spike."""
         entries = _make_error_burst(10, window_seconds=59)
         spikes = detector._detect_spikes(entries)
         assert len(spikes) >= 1
@@ -225,7 +225,7 @@ class TestSpikeEdgeCases:
         assert len(spikes) >= 1
 
     def test_two_separate_spikes(self, detector: AnomalyDetector) -> None:
-        """Dois bursts separados por mais de 60s geram 2 spikes."""
+        """Dois bursts separados por mais de 120s geram 2 spikes."""
         burst1 = _make_error_burst(12, start=_BASE_TIME, window_seconds=30)
         burst2 = _make_error_burst(
             12, start=_BASE_TIME + timedelta(minutes=5), window_seconds=30

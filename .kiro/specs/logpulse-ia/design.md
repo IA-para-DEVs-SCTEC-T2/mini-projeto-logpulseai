@@ -134,7 +134,7 @@ Integração com o modelo LLaMA 3 via Ollama, utilizando o OpenAI Python SDK com
 - Base URL: `http://localhost:11434/v1`
 - Modelo: `llama3.2:3b`
 - SDK: `openai` (drop-in replacement)
-- Timeout: 120s por chamada
+- Timeout: 120s por chamada (RF-05.7, RNF-08)
 - Retry: 2 tentativas com backoff (1s, 2s)
 - Amostragem: apenas entradas ERROR/CRITICAL (máx. 10)
 
@@ -268,7 +268,7 @@ Cliente ──► API Layer ──► LogStorageService.delete_log() ──► S
 | Endereço       | `http://localhost:11434/v1`    |
 | SDK            | `openai` (drop-in replacement) |
 | Pré-requisito  | Ollama instalado e em execução |
-| Timeout        | 120s por chamada               |
+| Timeout        | 120s por chamada (RF-05.7)     |
 | Retry          | 2 tentativas (backoff: 1s, 2s) |
 
 ### 5.2 Drain3

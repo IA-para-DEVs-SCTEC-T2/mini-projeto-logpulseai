@@ -41,6 +41,7 @@ inclusion: always
 ### Testes
 
 - **pytest**: Framework de testes com fixtures, parametrização e plugins
+- **pytest-asyncio**: Suporte a testes assíncronos (`async def test_*`)
 - **hypothesis**: Property-based testing para validação de invariantes
 - **pytest-cov**: Cobertura de código integrada ao pytest
 
@@ -99,6 +100,7 @@ Entrada → Parser (Drain3) → LogEntry → Analyzer → AnalysisResult → AIE
 src/
 ├── main.py                     # Ponto de entrada alternativo (uvicorn direto)
 ├── exceptions.py               # Hierarquia de exceções customizadas
+├── config.py                   # Módulo legado (não usado pela API — ver src/core/config.py)
 ├── api/
 │   ├── app.py                  # Factory da aplicação FastAPI (create_app)
 │   ├── health.py               # Endpoint GET /health
@@ -224,6 +226,7 @@ LogPulseError               # base
 ├── NotFoundError           # recurso não encontrado
 ├── StorageError            # erro de banco de dados
 ├── AnalysisError           # erro no analyzer
+├── AnalyzerError           # legado — use AnalysisError em código novo
 └── AIEngineError           # erro genérico de IA
     ├── AIEngineTimeoutError    # timeout do LLM
     └── AIEngineUnavailableError # Ollama indisponível
@@ -300,7 +303,6 @@ Todas as configurações usam prefixo `LOGPULSE_`:
 LOGPULSE_OLLAMA_BASE_URL=http://localhost:11434/v1
 LOGPULSE_OLLAMA_MODEL=llama3.2:3b
 LOGPULSE_OLLAMA_TIMEOUT=120
-LOGPULSE_OLLAMA_MAX_RETRIES=3
 LOGPULSE_DATABASE_URL=logpulse.db
 LOGPULSE_DRAIN_DEPTH=4
 LOGPULSE_DRAIN_SIM_TH=0.4

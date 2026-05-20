@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import math
 import random
 import time
 
@@ -11,6 +10,7 @@ import openai
 
 from src.ai.base import AIEngine
 from src.ai.health_check import check_ollama_tcp
+from src.core.config import get_settings
 from src.core.logging import get_logger
 from src.exceptions import AIEngineTimeoutError
 from src.models.schemas import AIDiagnosis, AnalysisResult, LogEntry, SeverityLevel
@@ -22,10 +22,10 @@ from src.models.schemas import AIDiagnosis, AnalysisResult, LogEntry, SeverityLe
 _OLLAMA_BASE_URL = "http://localhost:11434/v1"
 _OLLAMA_HOST = "localhost"
 _OLLAMA_PORT = 11434
-_MODEL_NAME = "llama3"
+_MODEL_NAME = "llama3.2:3b"
 
-# Timeout por chamada ao Ollama (segundos)
-_CALL_TIMEOUT_SECONDS = 60  # Aumentado para dar tempo ao modelo responder
+# Timeout por chamada ao Ollama (segundos) — alinhado com RF-05.7 e RNF-08
+_CALL_TIMEOUT_SECONDS = 120
 
 # Configuração de retry com backoff exponencial
 _MAX_RETRIES = 2  # 2 tentativas
@@ -261,17 +261,21 @@ class OllamaAIEngine(AIEngine):
     ) -> None:
         """Inicializa o OllamaAIEngine com cliente OpenAI SDK.
 
+        Os valores padrão são lidos das configurações da aplicação (Settings),
+        garantindo que variáveis de ambiente como LOGPULSE_OLLAMA_MODEL e
+        LOGPULSE_OLLAMA_TIMEOUT sejam respeitadas.
+
         Args:
             base_url: URL base do servidor Ollama.
-            model: Nome do modelo LLM (padrão: llama3).
-            timeout: Timeout por chamada em segundos (padrão: 5).
+            model: Nome do modelo LLM (padrão: llama3.2:3b via settings).
+            timeout: Timeout por chamada em segundos (padrão: 120s via settings).
         """
         self._model = model
         self._client = openai.OpenAI(
             base_url=base_url,
             api_key="ollama",  # Ollama não requer API key real
             timeout=timeout,
-            max_retries=0,  # Desabilita retry do OpenAI SDK
+            max_retries=0,  # Desabilita retry do OpenAI SDK — gerenciado internamente
         )
 
     def diagnose(
