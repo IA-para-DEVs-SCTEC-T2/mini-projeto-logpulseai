@@ -79,7 +79,11 @@ def get_ai_engine(settings: Settings = None) -> AIEngine:  # type: ignore[assign
     """
     if settings is None:
         settings = get_settings()
-    return OllamaAIEngine()
+    return OllamaAIEngine(
+        base_url=settings.ollama_base_url,
+        model=settings.ollama_model,
+        timeout=settings.ollama_timeout,
+    )
 
 
 async def get_repository(

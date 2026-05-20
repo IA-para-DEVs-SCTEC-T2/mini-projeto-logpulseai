@@ -49,4 +49,42 @@ main → bugfix/nome → PR (1 aprovação) → merge → main
 
 🚧 Em desenvolvimento ativo
 
+## Como Rodar
+
+### Pré-requisitos
+
+- Python 3.11+
+- [Ollama](https://ollama.ai) instalado
+
+### Setup
+
+```bash
+# Instale as dependências
+pip install -e ".[dev]"
+
+# Baixe o modelo de IA (llama3.2:3b — rápido e leve)
+ollama pull llama3.2:3b
+
+# Copie o arquivo de ambiente
+cp .env.example .env
+```
+
+### Executar a API
+
+```bash
+# Inicie o Ollama (em outro terminal)
+ollama serve
+
+# Inicie a API
+uvicorn src.api.app:app --reload --port 8000
+```
+
+Acesse a documentação interativa: http://localhost:8000/docs
+
+### Rodar Testes
+
+```bash
+pytest
+```
+
 
