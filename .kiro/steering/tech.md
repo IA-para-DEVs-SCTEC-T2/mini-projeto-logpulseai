@@ -31,7 +31,7 @@ inclusion: always
 ### Integração com IA/LLM
 
 - **openai**: Cliente oficial da API OpenAI, usado como drop-in replacement apontando para o servidor Ollama local (`http://localhost:11434/v1`).
-- **Ollama** (local): Servidor de LLM local rodando o modelo LLaMA 3 na porta 11434.
+- **Ollama** (local): Servidor de LLM local rodando o modelo `llama3.2:3b` na porta 11434.
 
 ### Persistência
 
@@ -99,17 +99,18 @@ Entrada → Parser (Drain3) → LogEntry → Analyzer → AnalysisResult → AIE
 src/
 ├── main.py                     # Ponto de entrada alternativo (uvicorn direto)
 ├── exceptions.py               # Hierarquia de exceções customizadas
-├── config.py                   # Configuração legada (use src/core/config.py)
 ├── api/
 │   ├── app.py                  # Factory da aplicação FastAPI (create_app)
 │   ├── health.py               # Endpoint GET /health
 │   ├── middleware.py           # Exception handlers centralizados
-│   ├── dependencies.py         # Injeção de dependências FastAPI
+│   ├── dependencies.py         # Injeção de dependências FastAPI (legado)
 │   └── v1/
 │       ├── router.py           # Agrupa routers v1
 │       ├── logs.py             # Re-export de compatibilidade
+│       ├── controllers/
+│       │   └── logs_controller.py  # Controller MVC: valida entrada e delega aos services
 │       └── routes/
-│           └── logs_routes.py  # Handlers dos 5 endpoints de logs
+│           └── logs_routes.py  # View MVC: define rotas HTTP e delega ao controller
 ├── services/
 │   ├── log_analysis_service.py # Orquestra pipeline: Parser→Analyzer→AI→Repo
 │   └── log_storage_service.py  # CRUD: get_by_id, list_logs, delete_log
@@ -135,6 +136,9 @@ src/
     ├── dependencies.py         # Providers de dependências FastAPI
     └── retry.py                # Utilitário de retry com backoff exponencial
 ```
+
+> **Padrão MVC na camada API:** A pasta `v1/` segue o padrão MVC completo:
+> `routes/` (View) → `controllers/` (Controller) → `services/` (Model/Service)
 
 ### Princípios de Design
 
@@ -294,8 +298,8 @@ Todas as configurações usam prefixo `LOGPULSE_`:
 
 ```env
 LOGPULSE_OLLAMA_BASE_URL=http://localhost:11434/v1
-LOGPULSE_OLLAMA_MODEL=llama3
-LOGPULSE_OLLAMA_TIMEOUT=30
+LOGPULSE_OLLAMA_MODEL=llama3.2:3b
+LOGPULSE_OLLAMA_TIMEOUT=120
 LOGPULSE_OLLAMA_MAX_RETRIES=3
 LOGPULSE_DATABASE_URL=logpulse.db
 LOGPULSE_DRAIN_DEPTH=4

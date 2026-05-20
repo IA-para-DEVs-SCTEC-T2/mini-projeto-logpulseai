@@ -8,7 +8,7 @@ O **LogPulse IA** é uma API REST construída com FastAPI que recebe logs brutos
 
 ## Como rodar
 
-**Pré-requisitos:** Python 3.11+, pip, [Ollama](https://ollama.com) instalado e rodando com o modelo `llama3`.
+**Pré-requisitos:** Python 3.11+, pip, [Ollama](https://ollama.com) instalado e rodando com o modelo `llama3.2:3b`.
 
 ```bash
 # 1. Instalar dependências
@@ -67,7 +67,8 @@ logpulse-ia/
 ├── src/
 │   ├── api/              # Camada HTTP (FastAPI, routers, middleware)
 │   │   └── v1/
-│   │       └── routes/   # Handlers dos endpoints
+│   │       ├── controllers/  # Controller MVC: valida entrada e delega
+│   │       └── routes/       # View MVC: define rotas HTTP
 │   ├── services/         # Lógica de negócio (orquestração do pipeline)
 │   ├── parsers/          # Parsing de logs com Drain3
 │   ├── ai/               # Integração com Ollama/LLaMA 3
@@ -86,7 +87,7 @@ logpulse-ia/
 | Componente   | Tecnologia                                    |
 |--------------|-----------------------------------------------|
 | API          | FastAPI + Pydantic v2                         |
-| IA           | Ollama + LLaMA 3 via OpenAI SDK (drop-in)     |
+| IA           | Ollama + LLaMA 3.2 (3B) via OpenAI SDK (drop-in)  |
 | Parsing      | Drain3 (extração de templates)                |
 | Persistência | SQLite + aiosqlite (async)                    |
 | Testes       | pytest + hypothesis (property-based testing)  |
@@ -114,8 +115,8 @@ Variáveis de ambiente (prefixo `LOGPULSE_`):
 
 ```env
 LOGPULSE_OLLAMA_BASE_URL=http://localhost:11434/v1
-LOGPULSE_OLLAMA_MODEL=llama3
-LOGPULSE_OLLAMA_TIMEOUT=30
+LOGPULSE_OLLAMA_MODEL=llama3.2:3b
+LOGPULSE_OLLAMA_TIMEOUT=120
 LOGPULSE_DATABASE_URL=logpulse.db
 ```
 

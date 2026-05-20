@@ -63,7 +63,7 @@ Entrada (arquivo ou texto)
 | Componente   | Tecnologia                                       |
 |--------------|--------------------------------------------------|
 | API          | FastAPI + Pydantic                               |
-| IA           | Ollama + LLaMA 3 (porta 11434) via OpenAI SDK    |
+| IA           | Ollama + LLaMA 3.2 (3B) (porta 11434) via OpenAI SDK    |
 | Parsing      | Drain3                                           |
 | Persistência | SQLite                                           |
 | Testes       | pytest + hypothesis (cobertura mínima: 30%)      |
@@ -150,13 +150,13 @@ Entrada (arquivo ou texto)
 
 | # | Critério de Aceitação |
 |---|-----------------------|
-| 1 | WHEN a API receber uma requisição de análise, THE `AIEngine` SHALL enviar o `AnalysisResult` ao Ollama (LLaMA 3) via OpenAI SDK apontando para `http://localhost:11434`. |
+| 1 | WHEN a API receber uma requisição de análise, THE `AIEngine` SHALL enviar o `AnalysisResult` ao Ollama (LLaMA 3.2) via OpenAI SDK apontando para `http://localhost:11434`. |
 | 2 | WHEN houver pelo menos um spike ou cluster de erro, THE `AIEngine` SHALL sugerir no mínimo 2 hipóteses de causa raiz ordenadas por probabilidade estimada. |
 | 3 | WHEN o `AIEngine` produzir hipóteses, THE `AIEngine` SHALL incluir pelo menos um comando ou ação de investigação por hipótese. |
 | 4 | THE `AIEngine` SHALL apontar a linha provável do erro no log quando identificável. |
 | 5 | IF o Ollama não estiver disponível na porta 11434, THEN THE API SHALL retornar HTTP 503 com mensagem orientando como iniciar o serviço. |
 | 6 | THE `AIEngine` SHALL incluir no diagnóstico apenas informações derivadas do `LogStream` fornecido, sem inventar eventos ou timestamps. |
-| 7 | THE `AIEngine` SHALL ter timeout de 30 segundos por chamada ao Ollama, retornando HTTP 504 em caso de estouro. |
+| 7 | THE `AIEngine` SHALL ter timeout de 120 segundos por chamada ao Ollama, retornando HTTP 504 em caso de estouro. |
 
 ---
 
@@ -191,14 +191,14 @@ Entrada (arquivo ou texto)
 
 ### RF-08 — Configuração do Sistema
 
-**User Story:** Como administrador, quero configurar o LogPulse IA via arquivo de configuração para padronizar o comportamento em diferentes ambientes.
+**User Story:** Como administrador, quero configurar o LogPulse IA via variáveis de ambiente para padronizar o comportamento em diferentes ambientes.
 
 | # | Critério de Aceitação |
 |---|-----------------------|
-| 1 | THE LogPulse IA SHALL carregar configurações de `logpulse.toml` no diretório atual ou em `~/.config/logpulse/logpulse.toml`. |
-| 2 | WHEN ambos os arquivos existirem, THE LogPulse IA SHALL mesclar as configurações com precedência para o arquivo local. |
-| 3 | THE LogPulse IA SHALL aceitar `LOGPULSE_API_KEY` como variável de ambiente com precedência sobre o arquivo de configuração. |
-| 4 | IF o arquivo de configuração contiver TOML inválido, THEN THE LogPulse IA SHALL registrar o erro no log de inicialização e usar a configuração padrão. |
+| 1 | THE LogPulse IA SHALL carregar configurações de variáveis de ambiente com prefixo `LOGPULSE_` ou do arquivo `.env` na raiz do projeto. |
+| 2 | WHEN a variável de ambiente estiver definida, THE LogPulse IA SHALL usar seu valor com precedência sobre o arquivo `.env`. |
+| 3 | IF uma variável obrigatória não estiver definida, THEN THE LogPulse IA SHALL usar o valor padrão configurado em `src/core/config.py`. |
+| 4 | IF o arquivo `.env` contiver valores inválidos para os tipos esperados, THEN THE LogPulse IA SHALL registrar o erro no log de inicialização e abortar. |
 
 ---
 
@@ -213,7 +213,7 @@ Entrada (arquivo ou texto)
 | RNF-05 | Manutenibilidade | O código SHALL passar em `mypy --strict`, `ruff` e `black` sem erros.                        |
 | RNF-06 | Testabilidade    | O projeto SHALL manter cobertura mínima de **30%** com `pytest` e `hypothesis`.              |
 | RNF-07 | Compatibilidade  | O sistema SHALL suportar Python 3.11+ em Linux, macOS e Windows.                             |
-| RNF-08 | Resiliência      | Chamadas ao Ollama SHALL ter timeout de 30 segundos com falha rápida e mensagem descritiva.  |
+| RNF-08 | Resiliência      | Chamadas ao Ollama SHALL ter timeout de 120 segundos com falha rápida e mensagem descritiva.  |
 | RNF-09 | Qualidade        | A resposta do diagnóstico SHALL ser coerente, clara e com qualidade técnica.                 |
 
 ---
@@ -225,7 +225,7 @@ Entrada (arquivo ou texto)
 | RN-01 | Um `LogEntry` é considerado crítico se `level` for ERROR ou CRITICAL.                                   |
 | RN-02 | Um spike é definido como 10 ou mais entradas críticas em uma janela deslizante de 60 segundos.          |
 | RN-03 | O `AIEngine` é sempre acionado automaticamente após a análise — não é opcional por flag.                |
-| RN-04 | A variável de ambiente `LOGPULSE_API_KEY` sempre tem precedência sobre qualquer arquivo de configuração. |
+| RN-04 | Variáveis de ambiente com prefixo `LOGPULSE_` sempre têm precedência sobre qualquer valor padrão definido no código. |
 | RN-05 | O Drain3 inspeciona todas as linhas do `LogStream` para construir os `LogTemplate`.                     |
 | RN-06 | Aliases de severidade (`WARN`, `ERR`, `FATAL`, `TRACE`) são normalizados antes de qualquer análise.     |
 | RN-07 | Análises com menos de 2 `LogEntry` retornam `AnalysisResult` com `insufficient_data = true`.            |
@@ -284,7 +284,7 @@ Entrada (arquivo ou texto)
 | 415  | Formato de arquivo não suportado              |
 | 422  | Campo obrigatório ausente ou inválido         |
 | 503  | Ollama indisponível na porta 11434            |
-| 504  | Timeout na chamada ao Ollama (> 30s)          |
+| 504  | Timeout na chamada ao Ollama (> 120s)         |
 | 500  | Erro interno inesperado                       |
 
 ---

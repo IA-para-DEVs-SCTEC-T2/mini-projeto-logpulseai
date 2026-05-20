@@ -240,12 +240,13 @@ Este documento contém as tarefas de implementação para o LogPulse IA, uma API
     - ✅ Implementado em `src/api/v1/routes/logs_routes.py`
     - _Requisitos: RF-06.5, RF-06.6_
 
-- [ ] 11. Validar cobertura de testes (≥ 30%)
+- [x] 11. Validar cobertura de testes (≥ 30%)
   - **Descrição:** Garantir que a cobertura mínima de 30% está sendo atingida
   - **Critérios de Aceitação:**
-    - [ ] `pytest --cov=src --cov-fail-under=30` passa sem erros
-    - [ ] Módulos críticos (parsers, analyzer, ai, repository) têm cobertura adequada
-    - [ ] Testes de property-based testing com hypothesis estão presentes
+    - [x] `pytest --cov=src --cov-fail-under=30` passa sem erros
+    - [x] Módulos críticos (parsers, analyzer, ai, repository) têm cobertura adequada
+    - [x] Testes de property-based testing com hypothesis estão presentes
   - **Dependências:** Todas as tarefas anteriores
   - **Estimativa:** 2-3 horas
   - _Requisitos: RNF-06_
+  - **Resultado:** 610 testes passando, 92% de cobertura de linha

@@ -2,7 +2,7 @@
 
 ## 1. Introdução
 
-O **LogPulse IA** é uma API REST que recebe logs brutos (stacktraces, logs de produção), analisa padrões de erro com auxílio de IA local (Ollama/LLaMA 3) e retorna diagnósticos estruturados com causa raiz e sugestões de correção.
+O **LogPulse IA** é uma API REST que recebe logs brutos (stacktraces, logs de produção), analisa padrões de erro com auxílio de IA local (Ollama/LLaMA 3.2) e retorna diagnósticos estruturados com causa raiz e sugestões de correção.
 
 Este documento descreve a arquitetura implementada, os componentes, os fluxos de dados, as integrações externas e as decisões técnicas do sistema.
 
@@ -132,9 +132,9 @@ Integração com o modelo LLaMA 3 via Ollama, utilizando o OpenAI Python SDK com
 
 **Configuração do cliente:**
 - Base URL: `http://localhost:11434/v1`
-- Modelo: `llama3`
+- Modelo: `llama3.2:3b`
 - SDK: `openai` (drop-in replacement)
-- Timeout: 60s por chamada
+- Timeout: 120s por chamada
 - Retry: 2 tentativas com backoff (1s, 2s)
 - Amostragem: apenas entradas ERROR/CRITICAL (máx. 10)
 
@@ -263,12 +263,12 @@ Cliente ──► API Layer ──► LogStorageService.delete_log() ──► S
 | Atributo       | Valor                          |
 |----------------|--------------------------------|
 | Tipo           | LLM local                      |
-| Modelo         | `llama3`                       |
+| Modelo         | `llama3.2:3b`                  |
 | Protocolo      | HTTP (compatível OpenAI)       |
 | Endereço       | `http://localhost:11434/v1`    |
 | SDK            | `openai` (drop-in replacement) |
 | Pré-requisito  | Ollama instalado e em execução |
-| Timeout        | 60s por chamada                |
+| Timeout        | 120s por chamada               |
 | Retry          | 2 tentativas (backoff: 1s, 2s) |
 
 ### 5.2 Drain3
@@ -341,11 +341,13 @@ src/
 │   ├── app.py                      # Factory create_app()
 │   ├── health.py                   # GET /health
 │   ├── middleware.py               # Exception handlers
-│   ├── dependencies.py             # Injeção de dependências
+│   ├── dependencies.py             # Injeção de dependências (legado)
 │   └── v1/
 │       ├── router.py               # Agrupa routers v1
+│       ├── controllers/
+│       │   └── logs_controller.py  # Controller MVC: valida e delega
 │       └── routes/
-│           └── logs_routes.py      # Handlers dos 5 endpoints
+│           └── logs_routes.py      # View MVC: define rotas HTTP
 ├── services/
 │   ├── log_analysis_service.py     # Pipeline: Parser→Analyzer→AI→Repo
 │   └── log_storage_service.py      # CRUD de leitura e deleção
