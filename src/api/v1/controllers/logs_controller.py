@@ -68,7 +68,7 @@ class LogsController:
             LogAnalysisResponse com análise e diagnóstico.
 
         Raises:
-            HTTPException 400: Extensão inválida.
+            HTTPException 415: Formato de arquivo não suportado.
             HTTPException 422: Arquivo vazio.
         """
         filename = file.filename or ""
@@ -78,8 +78,8 @@ class LogsController:
         if not filename.lower().endswith(_ALLOWED_EXTENSIONS):
             logger.warning("upload_file_rejected", filename=filename, reason="invalid_extension")
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Apenas arquivos .log e .txt são aceitos.",
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                detail=f"Formato de arquivo não suportado. Apenas {_ALLOWED_EXTENSIONS} são aceitos.",
             )
 
         # Leitura do conteúdo

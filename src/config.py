@@ -1,4 +1,13 @@
-"""Carregamento e validação de configuração do LogPulse IA.
+"""Carregamento e validação de configuração do LogPulse IA via arquivo TOML.
+
+.. deprecated::
+    Este módulo é legado e não é utilizado pela aplicação FastAPI.
+    A configuração ativa da aplicação está em :mod:`src.core.config`,
+    que usa ``pydantic-settings`` com variáveis de ambiente prefixadas
+    por ``LOGPULSE_``.
+
+    Este arquivo é mantido apenas para compatibilidade com testes existentes
+    que testam o carregamento de ``logpulse.toml``.
 
 Precedência (maior para menor):
 1. Variáveis de ambiente (LOGPULSE_API_KEY, LOGPULSE_MODEL)

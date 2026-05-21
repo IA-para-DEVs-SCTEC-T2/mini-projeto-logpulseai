@@ -42,7 +42,7 @@ Criar API Rest para realizar as validações de logs conforme os objetivos acima
 - Sugerir correção ou próximos passos
 
 ### 3. Execução Local
-- Ollama com modelo LLaMA 3 na porta padrão 11434
+- Ollama com modelo `llama3.2:3b` na porta padrão 11434
 - Python 3.11+
 - pip instalado
 
@@ -55,7 +55,7 @@ Criar API Rest para realizar as validações de logs conforme os objetivos acima
 
 ## Tecnologia
 
-- Localmente utilizando o Ollama modelo LLaMA 3.
+- Localmente utilizando o Ollama modelo LLaMA 3.2 (3B).
 - Python 3.11+.
 - Framework FastAPI
 - SQLite

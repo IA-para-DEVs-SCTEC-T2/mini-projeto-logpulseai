@@ -42,7 +42,12 @@ class AnalysisError(LogPulseError):
 
 
 class AnalyzerError(LogPulseError):
-    """Erro no componente analyzer (legado, mantido por compatibilidade)."""
+    """Erro no componente analyzer.
+
+    .. deprecated::
+        Use :class:`AnalysisError` em código novo.
+        Mantido apenas para compatibilidade com testes legados.
+    """
 
 
 class AIEngineError(LogPulseError):

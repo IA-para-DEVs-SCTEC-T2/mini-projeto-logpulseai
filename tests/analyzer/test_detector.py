@@ -4,7 +4,7 @@ Cobre todos os critérios de aceitação da Tarefa 5:
 - Interface abstrata LogAnalyzer
 - Agrupamento por template_id
 - Distribuição de severidade
-- Detecção de spikes (janela deslizante de 60s, threshold ≥10)
+- Detecção de spikes (janela deslizante de 120s, threshold ≥10)
 - Agrupamento de stack traces (Python, Java, Go)
 - Dados insuficientes (< 2 entradas)
 """
@@ -257,27 +257,27 @@ class TestTemplateGrouping:
 
 
 class TestSpikeDetection:
-    def test_exactly_10_errors_in_60s_detects_spike(self, detector: AnomalyDetector) -> None:
-        """Spike detectado com exatamente 10 erros em 60s."""
+    def test_exactly_10_errors_in_120s_detects_spike(self, detector: AnomalyDetector) -> None:
+        """Spike detectado com exatamente 10 erros em 120s."""
         entries = make_error_entries_in_window(10, window_seconds=59)
         result = detector.analyze(entries, [])
         assert len(result.spikes) >= 1
         assert result.spikes[0].error_count >= 10
 
-    def test_15_errors_in_60s_detects_spike(self, detector: AnomalyDetector) -> None:
-        """Spike detectado com 15 erros em 60s."""
+    def test_15_errors_in_120s_detects_spike(self, detector: AnomalyDetector) -> None:
+        """Spike detectado com 15 erros em 120s."""
         entries = make_error_entries_in_window(15, window_seconds=59)
         result = detector.analyze(entries, [])
         assert len(result.spikes) >= 1
 
-    def test_9_errors_in_60s_no_spike(self, detector: AnomalyDetector) -> None:
-        """Sem spike com 9 erros em 60s."""
+    def test_9_errors_in_120s_no_spike(self, detector: AnomalyDetector) -> None:
+        """Sem spike com 9 erros em 120s."""
         entries = make_error_entries_in_window(9, window_seconds=59)
         result = detector.analyze(entries, [])
         assert len(result.spikes) == 0
 
     def test_10_errors_in_61s_no_spike(self, detector: AnomalyDetector) -> None:
-        """Sem spike com 10 erros em 61s (fora da janela de 60s)."""
+        """Sem spike com 10 erros em 61s (fora da janela de 120s)."""
         base = _BASE_TIME
         entries = []
         for i in range(10):
