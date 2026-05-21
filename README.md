@@ -9,7 +9,7 @@
 > Analise logs de produção e receba diagnóstico inteligente com causa raiz e ações corretivas.
 >>>>>>> a903c259b0fe6ab8f9e83959ca019b3dc2dc731e
 
-> Envie seus logs, receba o diagnóstico. IA local, sem custo de API.
+> Envie seus logs receba o diagnóstico. IA local, sem custo de API.
 
 <<<<<<< HEAD
 **LogPulse IA** é uma API REST que analisa logs brutos — stacktraces, logs de produção, arquivos `.log` e `.txt` — e retorna um diagnóstico inteligente com causa raiz provável e ações corretivas, gerado por um LLM local via **Ollama + LLaMA 3**.
