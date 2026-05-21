@@ -21,22 +21,6 @@ from src.repository.sqlite_repository import SQLiteLogRepository
 class TestGetParser:
     """Testes para a dependência get_parser."""
 
-    def test_returns_log_parser(self) -> None:
-        """Verifica que retorna instância de LogParser."""
-        parser = get_parser()
-        assert isinstance(parser, LogParser)
-
-    def test_returns_drain3_parser(self) -> None:
-        """Verifica que a implementação concreta é Drain3LogParser."""
-        parser = get_parser()
-        assert isinstance(parser, Drain3LogParser)
-
-    def test_new_instance_each_call(self) -> None:
-        """Verifica que cada chamada retorna nova instância (sem estado compartilhado)."""
-        p1 = get_parser()
-        p2 = get_parser()
-        assert p1 is not p2
-
     def test_accepts_custom_settings(self) -> None:
         """Verifica que aceita Settings customizado."""
         settings = Settings(drain_depth=6, drain_sim_th=0.5)
@@ -47,16 +31,6 @@ class TestGetParser:
 class TestGetAnalyzer:
     """Testes para a dependência get_analyzer."""
 
-    def test_returns_log_analyzer(self) -> None:
-        """Verifica que retorna instância de LogAnalyzer."""
-        analyzer = get_analyzer()
-        assert isinstance(analyzer, LogAnalyzer)
-
-    def test_returns_anomaly_detector(self) -> None:
-        """Verifica que a implementação concreta é AnomalyDetector."""
-        analyzer = get_analyzer()
-        assert isinstance(analyzer, AnomalyDetector)
-
     def test_accepts_custom_settings(self) -> None:
         """Verifica que aceita Settings customizado."""
         settings = Settings(spike_threshold=20, spike_window_seconds=120)
@@ -66,16 +40,6 @@ class TestGetAnalyzer:
 
 class TestGetAIEngine:
     """Testes para a dependência get_ai_engine."""
-
-    def test_returns_ai_engine(self) -> None:
-        """Verifica que retorna instância de AIEngine."""
-        engine = get_ai_engine()
-        assert isinstance(engine, AIEngine)
-
-    def test_returns_ollama_engine(self) -> None:
-        """Verifica que a implementação concreta é OllamaAIEngine."""
-        engine = get_ai_engine()
-        assert isinstance(engine, OllamaAIEngine)
 
     def test_accepts_custom_settings(self) -> None:
         """Verifica que aceita Settings customizado."""

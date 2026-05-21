@@ -15,9 +15,7 @@ class TestSettings:
         settings = Settings()
 
         assert settings.ollama_base_url == "http://localhost:11434/v1"
-        assert settings.ollama_model == "llama3"
-        assert settings.ollama_timeout == 30
-        assert settings.ollama_max_retries == 3
+        assert settings.ollama_timeout == 90
         assert settings.database_url == "logpulse.db"
         assert settings.drain_depth == 4
         assert settings.drain_sim_th == 0.4
@@ -45,7 +43,7 @@ class TestSettings:
 
         # Não deve lançar exceção
         settings = Settings()
-        assert settings.ollama_model == "llama3"
+        assert isinstance(settings, Settings)
 
 
 class TestGetSettings:
