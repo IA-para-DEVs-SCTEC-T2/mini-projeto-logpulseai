@@ -90,7 +90,7 @@ class LogsController:
         if not content.strip():
             logger.warning("upload_file_rejected", filename=filename, reason="empty_content")
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="Arquivo vazio ou sem conteúdo válido.",
             )
 

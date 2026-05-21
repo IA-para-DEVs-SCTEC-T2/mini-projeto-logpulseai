@@ -9,6 +9,7 @@ Referências: RF-01.5, RF-02.5, RF-06.1
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 
 from src.ai.base import AIEngine
 from src.analyzer.base import LogAnalyzer
@@ -22,9 +23,11 @@ from src.exceptions import (
 from src.models.schemas import (
     AIDiagnosis,
     AnalysisResult,
+    Hypothesis,
     LogAnalysisResponse,
     LogEntry,
     LogTemplate,
+    SeverityLevel,
 )
 from src.parsers.base import LogParser
 from src.repository.base import LogRepository
@@ -107,9 +110,6 @@ class LogAnalysisService:
         logger.info("Diagnóstico gerado: confiança %.2f", diagnosis.confidence)
 
         # Etapa 3.5: Calcula issues e recommended_actions ANTES de persistir
-        from datetime import UTC, datetime
-        from src.models.schemas import LogAnalysisResponse
-        
         temp_response = LogAnalysisResponse.from_full_analysis(
             log_id="temp",  # ID temporário, será substituído
             analysis=analysis,
@@ -123,7 +123,7 @@ class LogAnalysisService:
         recommended_actions = temp_response.recommended_actions
 
         # Etapa 4: Persistência (atômica — só persiste se tudo acima passou)
-        log_id = await self._persist_result(content, analysis, diagnosis, issues, recommended_actions)
+        log_id = await self._persist_result(content, analysis, diagnosis)
         logger.info("Resultado persistido com ID: %s", log_id)
 
         # Cria resposta final com ID correto
@@ -197,6 +197,10 @@ class LogAnalysisService:
     ) -> AIDiagnosis:
         """Gera diagnóstico inteligente via motor de IA.
 
+        Propaga AIEngineError (timeout, indisponível) sem fallback —
+        o middleware da API trata esses casos com HTTP 503/504.
+        Para erros inesperados, usa diagnóstico heurístico.
+
         Args:
             analysis: Resultado da análise de anomalias.
             entries: Entradas de log para amostragem.
@@ -205,27 +209,23 @@ class LogAnalysisService:
             Diagnóstico estruturado com hipóteses e sugestões.
 
         Raises:
-            AIEngineError: Se o motor de IA falhar.
+            AIEngineError: Se o motor de IA falhar (propagado sem fallback).
         """
         try:
             return self._ai_engine.diagnose(analysis, entries)
-        except (AIEngineError, Exception) as exc:
-            logger.warning("AI diagnosis failed, using fallback: %s", str(exc))
-            # Fallback: diagnóstico simples sem IA com confidence dinâmico
-            from src.models.schemas import Hypothesis
-            
-            # Calcula confidence baseado na qualidade dos dados disponíveis
+        except AIEngineError:
+            # Propaga AIEngineError (inclui Timeout e Unavailable) sem fallback
+            raise
+        except Exception as exc:
+            logger.warning("AI diagnosis failed with unexpected error, using fallback: %s", str(exc))
             confidence = self._calculate_fallback_confidence(analysis, entries)
-            
-            # Gera hipóteses baseadas na análise
             hypotheses = self._generate_fallback_hypotheses(analysis)
-            
             return AIDiagnosis(
                 summary=f"Detectados {analysis.error_count} erros e {analysis.warning_count} warnings",
                 probable_cause="Análise automática via IA indisponível - diagnóstico baseado em regras heurísticas",
                 hypotheses=hypotheses,
                 suggested_fix=f"Analise os {len(analysis.stack_traces)} stack traces detectados e os templates de erro mais frequentes",
-                confidence=confidence
+                confidence=confidence,
             )
 
     def _calculate_fallback_confidence(
@@ -248,8 +248,6 @@ class LogAnalysisService:
         Returns:
             Confidence entre 0.3 e 0.7 (nunca igual à IA real que vai de 0.7 a 1.0).
         """
-        from src.models.schemas import SeverityLevel
-
         confidence = 0.5  # Base
         
         # +0.1 se tiver stack traces (mais contexto)
@@ -279,16 +277,14 @@ class LogAnalysisService:
     def _generate_fallback_hypotheses(self, analysis: AnalysisResult) -> list:
         """Gera hipóteses baseadas em regras heurísticas.
 
-        Garante sempre pelo menos 2 hipóteses para satisfazer o schema AIDiagnosis.
+        Garante sempre exatamente 3 hipóteses para satisfazer o schema AIDiagnosis.
 
         Args:
             analysis: Resultado da análise de anomalias.
 
         Returns:
-            Lista de Hypothesis com no mínimo 2 itens.
+            Lista de Hypothesis com exatamente 3 itens.
         """
-        from src.models.schemas import Hypothesis
-
         hypotheses = []
 
         # Hipótese 1: Baseada em spikes
@@ -297,51 +293,50 @@ class LogAnalysisService:
                 description=f"Spike de {analysis.spikes[0].error_count} erros detectado em janela de tempo específica",
                 probability="alta",
                 action="Investigar eventos ou deploys que ocorreram no período do spike",
-                related_line=None
             ))
         else:
             hypotheses.append(Hypothesis(
                 description="Erros distribuídos ao longo do tempo sem padrão de spike",
                 probability="média",
                 action="Revisar logs de erro e stack traces para identificar padrão comum",
-                related_line=None
             ))
 
-        # Hipótese 2: Baseada em stack traces (ou genérica se não houver)
+        # Hipótese 2: Baseada em stack traces
         if len(analysis.stack_traces) > 0:
             hypotheses.append(Hypothesis(
                 description=f"Detectados {len(analysis.stack_traces)} stack traces indicando exceções não tratadas",
                 probability="alta",
                 action="Analisar stack traces para identificar classes e métodos problemáticos",
-                related_line=None
             ))
         else:
             hypotheses.append(Hypothesis(
                 description="Possível problema de configuração, conectividade ou dependência externa",
                 probability="baixa",
                 action="Verificar configurações do sistema e status de serviços externos",
-                related_line=None
             ))
 
-        # Hipótese 3 (opcional): Baseada em templates
+        # Hipótese 3: Baseada em templates ou genérica
         if analysis.templates:
             top_template = analysis.templates[0]
             hypotheses.append(Hypothesis(
                 description=f"Padrão de erro mais frequente: '{top_template.pattern}' ({top_template.occurrences} ocorrências)",
                 probability="média",
                 action="Focar na resolução deste padrão de erro mais comum",
-                related_line=None
+            ))
+        else:
+            hypotheses.append(Hypothesis(
+                description="Ausência de padrões claros pode indicar erros esporádicos ou intermitentes",
+                probability="baixa",
+                action="Monitorar o sistema por mais tempo para identificar padrão recorrente",
             ))
 
-        return hypotheses[:3]  # Máximo 3 hipóteses, mínimo 2 garantido
+        return hypotheses  # Sempre 3 hipóteses
     
     async def _persist_result(
         self,
         content: str,
         analysis: AnalysisResult,
         diagnosis: AIDiagnosis,
-        issues: list | None = None,
-        recommended_actions: list[str] | None = None,
     ) -> str:
         """Persiste o resultado da análise no repositório.
 
@@ -349,8 +344,6 @@ class LogAnalysisService:
             content: Conteúdo bruto original.
             analysis: Resultado da análise.
             diagnosis: Diagnóstico gerado.
-            issues: Lista de issues calculados (opcional).
-            recommended_actions: Lista de ações recomendadas (opcional).
 
         Returns:
             UUID do registro criado.
@@ -359,7 +352,7 @@ class LogAnalysisService:
             StorageError: Se a persistência falhar.
         """
         try:
-            return await self._repository.create(content, analysis, diagnosis, issues, recommended_actions)
+            return await self._repository.create(content, analysis, diagnosis)
         except StorageError:
             raise
         except Exception as exc:

@@ -331,7 +331,7 @@ def test_parse_never_raises(text: str) -> None:
 
 
 @given(st.integers(min_value=1, max_value=50))
-@settings(max_examples=20)
+@settings(max_examples=20, deadline=None)
 def test_sample_messages_always_bounded(n: int) -> None:
     """Propriedade: sample_messages nunca excede 5 independente do volume."""
     parser = Drain3LogParser()

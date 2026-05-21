@@ -186,7 +186,7 @@ class TestOllamaAvailability:
         mock_openai_class.return_value = mock_client
 
         mock_response = MagicMock()
-        mock_response.choices[0].message.content = _make_valid_diagnosis_json()
+        mock_response.choices[0].message.content = _make_valid_diagnosis_json(3)
         mock_client.chat.completions.create.return_value = mock_response
 
         engine = OllamaAIEngine()
@@ -473,7 +473,7 @@ class TestOllamaEngineIntegration:
 
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.choices[0].message.content = _make_valid_diagnosis_json(2)
+        mock_response.choices[0].message.content = _make_valid_diagnosis_json(3)
 
         # Falha na primeira tentativa, sucesso na segunda
         mock_client.chat.completions.create.side_effect = [

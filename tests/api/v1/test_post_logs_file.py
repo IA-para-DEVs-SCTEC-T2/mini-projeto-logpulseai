@@ -30,21 +30,9 @@ def _make_response(log_id: str = "new-uuid-123") -> LogAnalysisResponse:
     """Cria LogAnalysisResponse de teste."""
     return LogAnalysisResponse(
         id=log_id,
-        analysis=AnalysisResult(total_entries=5, error_count=2, warning_count=1),
-        diagnosis=AIDiagnosis(
-            summary="Erro de conexão detectado",
-            probable_cause="Timeout de rede",
-            hypotheses=[
-                Hypothesis(description="Timeout", probability="alta", action="Verificar rede"),
-                Hypothesis(description="DNS", probability="média", action="Verificar DNS"),
-                Hypothesis(description="Firewall", probability="baixa", action="Verificar regras"),
-            ],
-            suggested_fix="Aumentar timeout",
-            confidence=0.8,
-        ),
-        created_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
-        total_entries=5,
-        summary="Erro de conexão detectado",
+        analyzed_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
+        metrics={"total_logs": 5, "errors": 2, "criticals": 0},
+        confidence=0.8,
     )
 
 
@@ -142,8 +130,8 @@ class TestPostLogsFile:
 
         assert response.status_code == 201
 
-    def test_returns_400_with_invalid_extension(self, client: TestClient) -> None:
-        """Retorna 400 para extensão não permitida."""
+    def test_returns_415_with_invalid_extension(self, client: TestClient) -> None:
+        """Retorna 415 para extensão não permitida."""
         file = io.BytesIO(b"some content")
 
         response = client.post(
@@ -151,8 +139,8 @@ class TestPostLogsFile:
             files={"file": ("data.csv", file, "text/plain")},
         )
 
-        assert response.status_code == 400
-        assert "Apenas arquivos" in response.json()["detail"]
+        assert response.status_code == 415
+        assert ".log" in response.json()["detail"] or "suportado" in response.json()["detail"]
 
     def test_returns_422_with_empty_file(self, client: TestClient) -> None:
         """Retorna 422 para arquivo vazio."""

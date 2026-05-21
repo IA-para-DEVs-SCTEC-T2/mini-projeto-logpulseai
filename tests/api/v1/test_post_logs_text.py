@@ -29,21 +29,9 @@ def _make_response(log_id: str = "new-uuid-456") -> LogAnalysisResponse:
     """Cria LogAnalysisResponse de teste."""
     return LogAnalysisResponse(
         id=log_id,
-        analysis=AnalysisResult(total_entries=3, error_count=1, warning_count=1),
-        diagnosis=AIDiagnosis(
-            summary="Erro detectado no log",
-            probable_cause="Falha de conexão",
-            hypotheses=[
-                Hypothesis(description="Timeout", probability="alta", action="Verificar rede"),
-                Hypothesis(description="DNS", probability="média", action="Verificar DNS"),
-                Hypothesis(description="Firewall", probability="baixa", action="Verificar regras"),
-            ],
-            suggested_fix="Aumentar timeout",
-            confidence=0.75,
-        ),
-        created_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
-        total_entries=3,
-        summary="Erro detectado no log",
+        analyzed_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
+        metrics={"total_logs": 3, "errors": 1, "criticals": 0},
+        confidence=0.75,
     )
 
 
@@ -103,7 +91,7 @@ class TestPostLogsText:
         """Retorna 201 com texto de log válido."""
         response = self.client.post(
             "/api/v1/logs/text",
-            json={"payload": {"content": "2024-01-15 ERROR Connection timeout\nWARNING disk low"}},
+            json={"content": "2024-01-15 ERROR Connection timeout\nWARNING disk low"},
         )
         assert response.status_code == 201
 
@@ -111,7 +99,7 @@ class TestPostLogsText:
         """Resposta contém ID do registro criado."""
         response = self.client.post(
             "/api/v1/logs/text",
-            json={"payload": {"content": "ERROR: something failed"}},
+            json={"content": "ERROR: something failed"},
         )
         data = response.json()
         assert "id" in data
@@ -121,7 +109,7 @@ class TestPostLogsText:
         """Retorna 422 para conteúdo vazio (validação Pydantic min_length=1)."""
         response = self.client.post(
             "/api/v1/logs/text",
-            json={"payload": {"content": ""}},
+            json={"content": ""},
         )
         assert response.status_code == 422
 
@@ -129,7 +117,7 @@ class TestPostLogsText:
         """Retorna 422 quando campo content está ausente."""
         response = self.client.post(
             "/api/v1/logs/text",
-            json={"payload": {}},
+            json={},
         )
         assert response.status_code == 422
 
@@ -139,7 +127,7 @@ class TestPostLogsText:
 
         response = self.client.post(
             "/api/v1/logs/text",
-            json={"payload": {"content": "ERROR: test error\nWARNING: disk low"}},
+            json={"content": "ERROR: test error\nWARNING: disk low"},
         )
         assert response.status_code == 503
 
@@ -149,7 +137,7 @@ class TestPostLogsText:
 
         response = self.client.post(
             "/api/v1/logs/text",
-            json={"payload": {"content": "ERROR: test error\nWARNING: disk low"}},
+            json={"content": "ERROR: test error\nWARNING: disk low"},
         )
         assert response.status_code == 504
 
@@ -159,7 +147,7 @@ class TestPostLogsText:
 
         self.client.post(
             "/api/v1/logs/text",
-            json={"payload": {"content": content}},
+            json={"content": content},
         )
 
         self.mock_repo.create.assert_called_once()

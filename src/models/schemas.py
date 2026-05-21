@@ -9,15 +9,6 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Dict, List, Optional
-
-
-
-try:
-    from typing import Annotated
-except ImportError:
-    from typing import Annotated
-
 from typing import Annotated
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -196,8 +187,8 @@ class AIDiagnosis(BaseModel):
 
     summary: str = Field(..., min_length=1, description="Resumo claro do problema identificado")
     probable_cause: str = Field(..., min_length=1, description="Causa raiz mais provável")
-    hypotheses: Annotated[list[Hypothesis], Field(min_length=2)] = Field(
-        ..., description="Lista de hipóteses (mínimo 2)"
+    hypotheses: Annotated[list[Hypothesis], Field(min_length=3)] = Field(
+        ..., description="Lista de hipóteses (mínimo 3)"
     )
     suggested_fix: str = Field(default="", description="Sugestão de correção ou próximos passos")
     confidence: float = Field(
