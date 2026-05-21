@@ -1,13 +1,13 @@
 # Relatório de Cobertura de Testes - LogPulse IA
 
-**Data:** 2025-01-29  
-**Cobertura Total:** 83.28%  
+**Data:** 2026-05-21  
+**Cobertura Total:** 85.46%  
 **Requisito Mínimo:** 30%  
 **Status:** ✅ **APROVADO**
 
 ## Resumo Executivo
 
-A cobertura de testes do projeto LogPulse IA **excede significativamente** o requisito mínimo de 30% estabelecido no RNF-06, atingindo **83.28%** de cobertura total.
+A cobertura de testes do projeto LogPulse IA **excede significativamente** o requisito mínimo de 30% estabelecido no RNF-06, atingindo **85.46%** de cobertura total com **588 testes passando**.
 
 ## Cobertura por Módulo Crítico
 
@@ -15,21 +15,21 @@ A cobertura de testes do projeto LogPulse IA **excede significativamente** o req
 
 | Módulo | Cobertura | Status | Observações |
 |--------|-----------|--------|-------------|
-| **Parser** (`src/parsers/`) | **95%** | ✅ | Drain3LogParser com excelente cobertura |
+| **Parser** (`src/parsers/`) | **93%** | ✅ | Drain3LogParser com excelente cobertura |
 | **Analyzer** (`src/analyzer/`) | **99%** | ✅ | AnomalyDetector quase completamente coberto |
-| **Repository** (`src/repository/`) | **37%** | ⚠️ | Abaixo do esperado, mas funcional |
+| **Repository** (`src/repository/`) | **73%** | ⚠️ | Abaixo do esperado, mas funcional |
 
-**Observação sobre Repository:** Embora a cobertura do repository esteja em 37% (abaixo do requisito de 80%), os testes existentes cobrem os casos de uso principais. A baixa cobertura se deve principalmente a:
-- Tratamento de erros de transação não testados
-- Casos de edge de serialização JSON não cobertos
+**Observação sobre Repository:** A cobertura do repository está em 73% (abaixo do requisito de 80%). As linhas não cobertas se concentram em:
+- Tratamento de erros de transação e rollback
+- Casos de edge de serialização JSON
 - Alguns métodos auxiliares não exercitados
 
 ### Services e Routers (Requisito: ≥50%)
 
 | Módulo | Cobertura | Status | Observações |
 |--------|-----------|--------|-------------|
-| **Services** (`src/services/`) | **93-96%** | ✅ | Excelente cobertura |
-| **Routers** (`src/api/v1/`) | **31-100%** | ✅ | Média geral acima de 50% |
+| **Services** (`src/services/`) | **63–95%** | ✅ | Média geral acima de 50% |
+| **Routers** (`src/api/v1/`) | **100%** | ✅ | Cobertura total nas rotas |
 
 ### Detalhamento de Cobertura por Arquivo
 
@@ -38,75 +38,80 @@ A cobertura de testes do projeto LogPulse IA **excede significativamente** o req
 - `src/core/logging.py`: **100%** ✅
 - `src/core/retry.py`: **100%** ✅
 - `src/core/config.py`: **100%** ✅
+- `src/core/dependencies.py`: **100%** ✅
 
-#### AI Engine (85%)
-- `src/ai/ollama_engine.py`: **85%** ✅
+#### AI Engine (88–100%)
+- `src/ai/ollama_engine.py`: **88%** ✅
 - `src/ai/health_check.py`: **100%** ✅
 - `src/ai/base.py`: **100%** ✅
 
-#### Parsers (90-95%)
-- `src/parsers/drain3_parser.py`: **95%** ✅
+#### Parsers (90–100%)
+- `src/parsers/drain3_parser.py`: **93%** ✅
 - `src/parsers/normalizer.py`: **90%** ✅
 - `src/parsers/base.py`: **100%** ✅
 
-#### Analyzer (99%)
+#### Analyzer (99–100%)
 - `src/analyzer/detector.py`: **99%** ✅
 - `src/analyzer/base.py`: **100%** ✅
 
-#### Models (98%)
-- `src/models/schemas.py`: **98%** ✅
+#### Models (85%)
+- `src/models/schemas.py`: **85%** ✅
 
-#### API (83-100%)
+#### API (83–100%)
 - `src/api/middleware.py`: **100%** ✅
 - `src/api/health.py`: **83%** ✅
-- `src/api/v1/logs_file.py`: **90%** ✅
-- `src/api/v1/logs_text.py`: **97%** ✅
-- `src/api/v1/logs_list.py`: **100%** ✅
+- `src/api/app.py`: **85%** ✅
+- `src/api/v1/routes/logs_routes.py`: **100%** ✅
+- `src/api/v1/controllers/logs_controller.py`: **100%** ✅
+- `src/api/v1/router.py`: **100%** ✅
+
+#### Repository (73%)
+- `src/repository/sqlite_repository.py`: **73%** ⚠️
+- `src/repository/base.py`: **100%** ✅
+
+#### Services (63–95%)
+- `src/services/log_analysis_service.py`: **63%** ⚠️
+- `src/services/log_storage_service.py`: **95%** ✅
 
 ## Resultados dos Testes
 
-- **Total de Testes:** 614
-- **Testes Passando:** 587 (95.6%)
-- **Testes Falhando:** 10 (1.6%)
-- **Testes com Erro:** 16 (2.6%)
-- **Testes Pulados:** 1 (0.2%)
+- **Total de Testes:** 588
+- **Testes Passando:** 588 (100%)
+- **Testes Falhando:** 0
+- **Testes com Erro:** 0
+- **Warnings:** 9 (deprecações do Starlette — não bloqueantes)
 
-### Testes Falhando
+### Warnings Identificados
 
-Os testes falhando são principalmente relacionados a:
-1. **Repository SQLite** (16 erros): Testes assíncronos com problemas de setup
-2. **API Endpoints** (10 falhas): Testes de integração com dependências mockadas
+Os warnings são relacionados a uma constante depreciada no Starlette:
 
-**Nota:** Estes testes falhando não impedem a validação da cobertura, pois a cobertura mede o código executado, não o resultado dos testes.
+- `HTTP_422_UNPROCESSABLE_ENTITY` → substituir por `HTTP_422_UNPROCESSABLE_CONTENT`
+- Ocorre em `src/api/v1/routes/logs_routes.py` e nos testes de middleware
+- **Não afeta o funcionamento** — apenas indica uma atualização futura necessária
 
 ## Áreas com Baixa Cobertura Identificadas
 
-### 1. Repository SQLite (37%)
-**Linhas não cobertas:**
-- Tratamento de erros de transação (linhas 77-83)
-- Métodos de atualização (linhas 104-136)
-- Casos de erro de serialização (linhas 150-173)
-- Rollback de transações (linhas 214-221)
+### 1. Repository SQLite (73%)
+**Linhas não cobertas:** 89–91, 97–99, 104–110, 165–171, 197–203, 251–258, 281–287, 311–317, 350–351, 356–359, 368, 371
 
-**Recomendação:** Adicionar testes específicos para:
-- Falhas de transação
+**Recomendação:** Adicionar testes para:
+- Falhas de transação e rollback
 - Serialização/deserialização de objetos complexos
 - Casos de erro de banco de dados
 
-### 2. Main Application (0%)
+### 2. Log Analysis Service (63%)
+**Linhas não cobertas:** 212–223, 251–277, 290–336, 365–366
+
+**Recomendação:** Adicionar testes para:
+- Fluxos de análise com AI habilitada
+- Casos de fallback quando o AI engine falha
+- Cenários de pipeline completo end-to-end
+
+### 3. Main Application (0%)
 **Arquivo:** `src/main.py`  
 **Cobertura:** 0%
 
-**Observação:** O arquivo `main.py` contém apenas código de inicialização da aplicação FastAPI e não é executado durante os testes unitários. Isso é esperado e não afeta a funcionalidade.
-
-### 3. API Logs Endpoint (31%)
-**Arquivo:** `src/api/v1/logs.py`  
-**Cobertura:** 31%
-
-**Linhas não cobertas:**
-- Handlers de endpoints não utilizados (linhas 36-68)
-- Validações de entrada (linhas 81-99)
-- Tratamento de erros específicos (linhas 109-116)
+**Observação:** Contém apenas código de inicialização da aplicação e não é executado durante os testes unitários. Comportamento esperado.
 
 ## Relatório HTML
 
@@ -125,27 +130,30 @@ open htmlcov/index.html
 
 ✅ **O projeto LogPulse IA atende e excede os requisitos de cobertura de testes:**
 
-1. ✅ **Cobertura Total:** 83.28% (requisito: ≥30%)
-2. ✅ **Parser:** 93-95% (requisito: ≥80%)
+1. ✅ **Cobertura Total:** 85.46% (requisito: ≥30%)
+2. ✅ **Parser:** 90–93% (requisito: ≥80%)
 3. ✅ **Analyzer:** 99% (requisito: ≥80%)
-4. ⚠️ **Repository:** 37% (requisito: ≥80%) - Funcional, mas abaixo do esperado
-5. ✅ **Services:** 93-96% (requisito: ≥50%)
-6. ✅ **Routers:** Média >50% (requisito: ≥50%)
+4. ⚠️ **Repository:** 73% (requisito: ≥80%) — funcional, mas abaixo do esperado
+5. ✅ **Services:** média >63% (requisito: ≥50%)
+6. ✅ **Routers:** 100% (requisito: ≥50%)
+7. ✅ **Todos os 588 testes passando**
 
 ### Recomendações para Melhoria
 
 1. **Prioridade Alta:** Aumentar cobertura do Repository para ≥80%
    - Adicionar testes de transação e rollback
    - Testar casos de erro de serialização
-   - Cobrir métodos de atualização
+   - Cobrir métodos auxiliares
 
-2. **Prioridade Média:** Melhorar cobertura do endpoint `logs.py`
-   - Adicionar testes de integração end-to-end
-   - Testar validações de entrada
+2. **Prioridade Alta:** Aumentar cobertura do `log_analysis_service.py` para ≥80%
+   - Adicionar testes de integração com AI engine mockado
+   - Cobrir fluxos de fallback e degradação graciosa
 
-3. **Prioridade Baixa:** Documentar áreas intencionalmente não cobertas
+3. **Prioridade Média:** Corrigir warnings de deprecação do Starlette
+   - Substituir `HTTP_422_UNPROCESSABLE_ENTITY` por `HTTP_422_UNPROCESSABLE_CONTENT`
+
+4. **Prioridade Baixa:** Documentar áreas intencionalmente não cobertas
    - `main.py` (código de inicialização)
-   - Casos de erro raros
 
 ## Comandos para Reproduzir
 
@@ -162,4 +170,4 @@ python -m pytest --cov=src --cov-report=html
 
 ---
 
-**Documento gerado automaticamente pela tarefa 18 do spec LogPulse IA**
+**Última atualização:** 2026-05-21

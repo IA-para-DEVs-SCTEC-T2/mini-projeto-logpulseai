@@ -12,9 +12,6 @@ import pytest
 
 from src.exceptions import StorageError
 from src.models.schemas import (
-    AIDiagnosis,
-    AnalysisResult,
-    Hypothesis,
     LogAnalysisResponse,
     LogListResponse,
 )
@@ -29,21 +26,11 @@ def _make_response(log_id: str = "uuid-123") -> LogAnalysisResponse:
     """Cria um LogAnalysisResponse de teste."""
     return LogAnalysisResponse(
         id=log_id,
-        analysis=AnalysisResult(total_entries=5, error_count=3, warning_count=1),
-        diagnosis=AIDiagnosis(
-            summary="Problema detectado.",
-            probable_cause="Causa provável.",
-            hypotheses=[
-                Hypothesis(description="H1", probability="alta", action="Ação 1"),
-                Hypothesis(description="H2", probability="média", action="Ação 2"),
-                Hypothesis(description="H3", probability="baixa", action="Ação 3"),
-            ],
-            suggested_fix="Correção sugerida.",
-            confidence=0.8,
-        ),
-        created_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
-        total_entries=5,
-        summary="Problema detectado.",
+        analyzed_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
+        metrics={"total_logs": 5, "errors": 3, "criticals": 0},
+        issues=[],
+        recommended_actions=[],
+        confidence=0.8,
     )
 
 

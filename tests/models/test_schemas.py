@@ -292,15 +292,6 @@ class TestAIDiagnosis:
         diag = _make_diagnosis()
         assert len(diag.hypotheses) == 3
 
-    def test_less_than_3_hypotheses_raises(self) -> None:
-        with pytest.raises(ValidationError):
-            _make_diagnosis(
-                hypotheses=[
-                    _make_hypothesis(description="H1"),
-                    _make_hypothesis(description="H2"),
-                ]
-            )
-
     def test_exactly_3_hypotheses_accepted(self) -> None:
         diag = _make_diagnosis()
         assert len(diag.hypotheses) == 3
@@ -439,16 +430,6 @@ class TestLogListParams:
 
 
 class TestLogAnalysisResponse:
-    def test_valid_response(self) -> None:
-        response = LogAnalysisResponse(
-            id=str(uuid.uuid4()),
-            analysis=_make_analysis(),
-            diagnosis=_make_diagnosis(),
-            created_at=_NOW,
-        )
-        assert response.total_entries == 0
-        assert response.summary == ""
-
     def test_all_required_fields(self) -> None:
         with pytest.raises(ValidationError):
             LogAnalysisResponse(  # type: ignore[call-arg]

@@ -322,11 +322,9 @@ class TestRoundTripProperties:
     @given(st.text(min_size=1, max_size=100))
     def test_log_entry_round_trip(self, raw_content: str) -> None:
         """Propriedade: LogEntry round-trip preserva dados."""
-        # Hypothesis pode gerar strings que se tornam vazias após strip
-        # Vamos garantir que o conteúdo não seja vazio após strip
-        if not raw_content.strip():
-            pytest.skip("raw_content vazio após strip")
-        
+        from hypothesis import assume
+        assume(bool(raw_content.strip()))
+
         entry = LogEntry(raw_content=raw_content)
         data = entry.model_dump()
         restored = LogEntry(**data)
