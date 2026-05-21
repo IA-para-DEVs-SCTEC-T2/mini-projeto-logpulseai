@@ -74,7 +74,7 @@ Requisitos:
 ```
 
 **Resultado:**
-Arquivo `.kiro/steering/tech.md` reescrito com: stack detalhada com justificativas por tecnologia, estratégia de versionamento de dependências (`~=`,`==`,`>=`), arquitetura em camadas com diagrama ASCII e organização completa de `src/`, hierarquia de exceções customizadas, regras de tratamento de erros, padrões de docstrings Google Style, três tipos de testes (unitários, integração, property-based), cobertura mínima de 80%, padrão de logs internos com `structlog`, estrutura completa do `logpulse.toml`, precedência de configuração, workflow de GitHub Actions e configuração de pre-commit hooks.
+Arquivo `.kiro/steering/tech.md` reescrito com: stack detalhada com justificativas por tecnologia, estratégia de versionamento de dependências (`~=`, `==` ,`>=`), arquitetura em camadas com diagrama ASCII e organização completa de `src/`, hierarquia de exceções customizadas, regras de tratamento de erros, padrões de docstrings Google Style, três tipos de testes (unitários, integração, property-based), cobertura mínima de 80%, padrão de logs internos com `structlog`, estrutura completa do `logpulse.toml`, precedência de configuração, workflow de GitHub Actions e configuração de pre-commit hooks.
 
 ---
 
