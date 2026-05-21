@@ -7,10 +7,11 @@ sem mocks, para validar o comportamento real de persistência.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+import pytest_asyncio
 
 from src.models.schemas import (
     AIDiagnosis,
@@ -59,7 +60,7 @@ def make_analysis() -> AnalysisResult:
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def repo(tmp_path: Path) -> SQLiteLogRepository:
     """Cria e inicializa um SQLiteLogRepository em diretório temporário."""
     db_path = str(tmp_path / "test_logpulse.db")
@@ -283,9 +284,9 @@ async def test_multiple_creates_list_returns_all(repo: SQLiteLogRepository) -> N
 @pytest.mark.asyncio
 async def test_created_at_is_set_automatically(repo: SQLiteLogRepository) -> None:
     """created_at deve ser definido automaticamente ao criar um registro."""
-    before = datetime.now(timezone.utc)
+    before = datetime.now(UTC)
     log_id = await repo.create("log content", make_analysis(), make_diagnosis())
-    after = datetime.now(timezone.utc)
+    after = datetime.now(UTC)
 
     record = await repo.get_by_id(log_id)
 

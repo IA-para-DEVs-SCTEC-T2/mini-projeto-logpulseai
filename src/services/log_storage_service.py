@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Optional
 
 from src.exceptions import StorageError
 from src.models.schemas import LogAnalysisResponse, LogListResponse
@@ -37,7 +36,7 @@ class LogStorageService:
         """Inicializa o serviço com o repositório injetado."""
         self._repository = repository
 
-    async def get_by_id(self, log_id: str) -> Optional[LogAnalysisResponse]:
+    async def get_by_id(self, log_id: str) -> LogAnalysisResponse | None:
         """Recupera um log pelo seu UUID.
 
         Args:
@@ -129,14 +128,7 @@ class LogStorageService:
     async def _get_total_count(self) -> int:
         """Obtém o total de registros no repositório.
 
-        Usa list_paginated com page_size grande para estimar o total.
-        Implementações futuras podem adicionar método count() ao repositório.
-
         Returns:
-            Total estimado de registros.
+            Total de registros persistidos.
         """
-        # Estratégia: busca página 1 com tamanho grande para contar
-        # Nota: idealmente o repositório teria um método count()
-        # Por ora, usamos uma abordagem pragmática
-        all_items = await self._repository.list_paginated(page=1, page_size=10000)
-        return len(all_items)
+        return await self._repository.count()

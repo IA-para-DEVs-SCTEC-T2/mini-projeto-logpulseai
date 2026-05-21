@@ -11,7 +11,7 @@ Criar arquivos de log de exemplo em logs/fixtures/ cobrindo os seguintes cenári
 - Python traceback multi-linha (ConnectionError, TypeError)
 - Java stacktrace (NullPointerException, IOException com Caused by)
 - Go panic com goroutines
-- Spike de erros (10+ erros ERROR/CRITICAL em janela de 60s)
+- Spike de erros (10+ erros ERROR/CRITICAL em janela de 120s)
 - Logs JSON estruturados (um objeto por linha)
 - Logs formato syslog (RFC 3164)
 - Logs com todos os níveis de severidade (DEBUG, INFO, WARNING, ERROR, CRITICAL)

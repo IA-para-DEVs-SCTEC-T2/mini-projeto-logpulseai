@@ -3,19 +3,17 @@
 from __future__ import annotations
 
 import json
-import logging
-import math
 import random
-import socket
 import time
-from typing import List
 
 import openai
 
 from src.ai.base import AIEngine
 from src.ai.health_check import check_ollama_tcp
-from src.exceptions import AIEngineTimeoutError, AIEngineUnavailableError
-from src.models.schemas import AIDiagnosis, AnalysisResult, Hypothesis, LogEntry, SeverityLevel
+from src.core.config import get_settings
+from src.core.logging import get_logger
+from src.exceptions import AIEngineTimeoutError
+from src.models.schemas import AIDiagnosis, AnalysisResult, LogEntry, SeverityLevel
 
 # ---------------------------------------------------------------------------
 # Constantes de configuração
@@ -24,185 +22,138 @@ from src.models.schemas import AIDiagnosis, AnalysisResult, Hypothesis, LogEntry
 _OLLAMA_BASE_URL = "http://localhost:11434/v1"
 _OLLAMA_HOST = "localhost"
 _OLLAMA_PORT = 11434
-_MODEL_NAME = "llama3"
+_MODEL_NAME = "llama3.2:3b"
 
-# Timeout por chamada ao Ollama (segundos)
-_CALL_TIMEOUT_SECONDS = 30
+# Timeout por chamada ao Ollama (segundos) — alinhado com RF-05.7 e RNF-08
+_CALL_TIMEOUT_SECONDS = 120
 
 # Configuração de retry com backoff exponencial
-_MAX_RETRIES = 3
-_RETRY_DELAYS = [1, 2, 4]  # segundos entre tentativas
+_MAX_RETRIES = 2  # 2 tentativas
+_RETRY_DELAYS = [1, 2]  # segundos entre tentativas
 
 # Amostragem estratificada
-_MAX_SAMPLE_ENTRIES = 50
-_ERROR_RATIO = 0.70   # 70% de erros (ERROR + CRITICAL)
-_WARNING_RATIO = 0.20  # 20% de warnings
-_OTHER_RATIO = 0.10   # 10% de outros (INFO, DEBUG)
+_MAX_SAMPLE_ENTRIES = 10  # Reduzido para processar mais rápido
+_ERROR_RATIO = 0.80   # 80% de erros (ERROR + CRITICAL) - foco em problemas
+_WARNING_RATIO = 0.15  # 15% de warnings
+_OTHER_RATIO = 0.05   # 5% de outros (INFO, DEBUG)
 
 # Níveis considerados "erro" para amostragem
 _ERROR_LEVELS = {SeverityLevel.ERROR, SeverityLevel.CRITICAL}
 _WARNING_LEVELS = {SeverityLevel.WARNING}
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # Prompt do sistema
 # ---------------------------------------------------------------------------
 
-_SYSTEM_PROMPT = """Você é um especialista em análise de logs de sistemas de produção.
-Sua tarefa é analisar logs fornecidos e gerar um diagnóstico estruturado em JSON.
+_SYSTEM_PROMPT = """Você é um especialista em análise de logs. Responda APENAS com JSON válido.
 
-Regras obrigatórias:
-1. Responda APENAS com JSON válido, sem texto adicional antes ou depois.
-2. O JSON deve seguir exatamente o schema fornecido.
-3. Gere EXATAMENTE 3 ou mais hipóteses de causa raiz.
-4. Cada hipótese DEVE ter um campo "action" não vazio com uma ação concreta.
-5. O campo "probability" deve ser exatamente "alta", "média" ou "baixa".
-6. Baseie-se APENAS nas informações fornecidas — não invente eventos ou timestamps.
-7. As hipóteses devem ser ordenadas da maior para a menor probabilidade.
+REGRAS:
+1. JSON válido, sem markdown
+2. "probability": "alta", "média" ou "baixa"
+3. Máximo 2 hipóteses
+4. Seja direto e técnico
+5. "confidence": valor OBRIGATORIAMENTE calculado assim (some os pontos):
+   - Base: 0.5
+   - Stack traces presentes nos logs: +0.2
+   - Múltiplas ocorrências do mesmo erro (>=5): +0.15
+   - Spike de erros detectado: +0.15
+   - Padrão claro identificado (causa óbvia): +0.1
+   - Informação insuficiente ou logs muito genéricos: -0.2
+   - Mínimo: 0.4, Máximo: 0.95
 
-Schema JSON esperado:
+Schema:
 {
-  "summary": "Resumo claro do problema identificado",
-  "probable_cause": "Causa raiz mais provável",
+  "summary": "Resumo do problema",
+  "probable_cause": "Causa raiz específica",
   "hypotheses": [
     {
-      "description": "Descrição da hipótese",
+      "description": "Hipótese 1",
       "probability": "alta",
-      "action": "Ação concreta para investigar ou corrigir",
+      "action": "Ação concreta",
       "related_line": null
     }
   ],
-  "suggested_fix": "Sugestão de correção ou próximos passos",
+  "suggested_fix": "Solução principal",
   "confidence": 0.85
 }"""
 
 
-def _build_user_prompt(analysis: AnalysisResult, sample_entries: List[LogEntry]) -> str:
-    """Constrói o prompt do usuário com os dados de análise e amostras.
-
-    Args:
-        analysis: Resultado da análise de anomalias.
-        sample_entries: Amostra estratificada de entradas de log.
-
-    Returns:
-        Prompt formatado para envio ao LLM.
+def _build_user_prompt(analysis: AnalysisResult, sample_entries: list[LogEntry]) -> str:
+    """Constrói prompt simplificado focado no problema.
+    
+    OTIMIZAÇÃO: Recebe apenas entradas ERROR/CRITICAL para reduzir payload.
+    Inclui contexto para o LLM calcular confidence adequadamente.
     """
     lines = [
-        "## Análise de Logs",
-        "",
-        f"**Total de entradas:** {analysis.total_entries}",
-        f"**Erros (ERROR + CRITICAL):** {analysis.error_count}",
-        f"**Warnings:** {analysis.warning_count}",
-        f"**Dados insuficientes:** {analysis.insufficient_data}",
-        "",
+        f"Total: {analysis.total_entries} | Erros: {analysis.error_count}",
     ]
 
-    # Distribuição de severidade
-    if analysis.severity_distribution:
-        lines.append("**Distribuição por severidade:**")
-        for level, count in analysis.severity_distribution.items():
-            lines.append(f"  - {level.value}: {count}")
-        lines.append("")
-
-    # Spikes detectados
+    # Contexto para confidence
+    confidence_factors = []
+    
+    # Spike
     if analysis.spikes:
-        lines.append(f"**Spikes detectados:** {len(analysis.spikes)}")
-        for spike in analysis.spikes:
-            lines.append(
-                f"  - {spike.error_count} erros entre "
-                f"{spike.start_time.isoformat()} e {spike.end_time.isoformat()}"
-            )
-        lines.append("")
+        spike = analysis.spikes[0]
+        lines.append(f"SPIKE: {spike.error_count} erros em {int((spike.end_time - spike.start_time).total_seconds())}s")
+        confidence_factors.append("spike detectado")
 
-    # Stack traces
+    # Stack trace principal (apenas primeiras 3 linhas)
     if analysis.stack_traces:
-        lines.append(f"**Stack traces detectados:** {len(analysis.stack_traces)}")
-        for i, trace in enumerate(analysis.stack_traces[:3], 1):
-            lines.append(f"  Stack trace {i}:")
-            for trace_line in trace.split("\n")[:5]:
-                lines.append(f"    {trace_line}")
-        lines.append("")
+        lines.append("Stack trace:")
+        for line in analysis.stack_traces[0].split("\n")[:3]:
+            lines.append(f"  {line.strip()}")
+        confidence_factors.append(f"{len(analysis.stack_traces)} stack traces")
 
-    # Templates
-    if analysis.templates:
-        lines.append(f"**Templates de log ({len(analysis.templates)} padrões):**")
-        for tmpl in analysis.templates[:5]:
-            lines.append(f"  - [{tmpl.occurrences}x] {tmpl.pattern}")
-        lines.append("")
-
-    # Amostras de log
+    # Top 3 erros (já filtrados, todos são ERROR/CRITICAL)
     if sample_entries:
-        lines.append(f"**Amostras de log ({len(sample_entries)} entradas):**")
-        for entry in sample_entries:
-            ts = entry.timestamp.isoformat() if entry.timestamp else "sem timestamp"
-            lines.append(f"  [{entry.severity.value}] {ts} — {entry.raw_content[:200]}")
-        lines.append("")
-
-    lines.append("Gere o diagnóstico em JSON conforme o schema especificado.")
+        lines.append("Erros:")
+        for e in sample_entries[:3]:
+            lines.append(f"  {e.raw_content[:80]}")
+        
+        # Verifica se há padrão (múltiplas ocorrências)
+        if len(sample_entries) >= 5:
+            confidence_factors.append("múltiplas ocorrências")
+    
+    # Adiciona dica de confidence ao final
+    if confidence_factors:
+        lines.append(f"\nEvidências: {', '.join(confidence_factors)}")
+    else:
+        lines.append("\nEvidências: informação limitada")
 
     return "\n".join(lines)
 
 
-def _stratified_sample(entries: List[LogEntry], max_entries: int = _MAX_SAMPLE_ENTRIES) -> List[LogEntry]:
-    """Realiza amostragem estratificada das entradas de log.
-
-    Seleciona entradas respeitando as proporções:
-    - 70% de erros (ERROR + CRITICAL)
-    - 20% de warnings (WARNING)
-    - 10% de outros (INFO, DEBUG)
-
+def _filter_errors_only(entries: list[LogEntry], max_entries: int = _MAX_SAMPLE_ENTRIES) -> list[LogEntry]:
+    """Filtra apenas entradas ERROR/CRITICAL para otimizar performance.
+    
+    OTIMIZAÇÃO: Envia apenas erros críticos ao LLM, reduzindo drasticamente
+    o tamanho do payload e tempo de resposta.
+    
     Args:
         entries: Lista completa de entradas de log.
-        max_entries: Número máximo de entradas na amostra (padrão: 50).
+        max_entries: Número máximo de entradas na amostra (padrão: 10).
 
     Returns:
-        Lista amostrada com no máximo max_entries entradas.
+        Lista com no máximo max_entries erros (ERROR/CRITICAL).
     """
     if not entries:
         return []
 
-    if len(entries) <= max_entries:
-        return list(entries)
-
-    # Separa por categoria
+    # Filtra apenas ERROR e CRITICAL
     errors = [e for e in entries if e.severity in _ERROR_LEVELS]
-    warnings = [e for e in entries if e.severity in _WARNING_LEVELS]
-    others = [e for e in entries if e.severity not in _ERROR_LEVELS and e.severity not in _WARNING_LEVELS]
-
-    # Calcula quantidades por categoria
-    n_errors = math.floor(max_entries * _ERROR_RATIO)
-    n_warnings = math.floor(max_entries * _WARNING_RATIO)
-    n_others = max_entries - n_errors - n_warnings
-
-    # Ajusta se não há entradas suficientes em alguma categoria
-    actual_errors = min(n_errors, len(errors))
-    actual_warnings = min(n_warnings, len(warnings))
-    actual_others = min(n_others, len(others))
-
-    # Redistribui slots não utilizados
-    remaining = max_entries - actual_errors - actual_warnings - actual_others
-    if remaining > 0:
-        # Tenta completar com erros primeiro, depois warnings, depois outros
-        extra_errors = min(remaining, len(errors) - actual_errors)
-        actual_errors += extra_errors
-        remaining -= extra_errors
-
-    if remaining > 0:
-        extra_warnings = min(remaining, len(warnings) - actual_warnings)
-        actual_warnings += extra_warnings
-        remaining -= extra_warnings
-
-    if remaining > 0:
-        extra_others = min(remaining, len(others) - actual_others)
-        actual_others += extra_others
-
-    # Amostra aleatória de cada categoria
-    sampled_errors = random.sample(errors, actual_errors) if actual_errors > 0 else []
-    sampled_warnings = random.sample(warnings, actual_warnings) if actual_warnings > 0 else []
-    sampled_others = random.sample(others, actual_others) if actual_others > 0 else []
-
-    return sampled_errors + sampled_warnings + sampled_others
+    
+    if not errors:
+        logger.warning("no_errors_found", total_entries=len(entries))
+        return []
+    
+    # Se há poucos erros, retorna todos
+    if len(errors) <= max_entries:
+        return errors
+    
+    # Amostra aleatória dos erros
+    return random.sample(errors, max_entries)
 
 
 def _check_ollama_availability() -> None:
@@ -241,6 +192,50 @@ def _parse_llm_response(content: str) -> AIDiagnosis:
     return AIDiagnosis.model_validate(data)
 
 
+def _adjust_confidence(diagnosis: AIDiagnosis, analysis: AnalysisResult) -> AIDiagnosis:
+    """Ajusta a confidence do LLM baseado nos dados reais quando subestimada.
+
+    O LLM às vezes retorna confidence conservadora (ex: 0.4) mesmo com
+    evidências claras. Esta função aplica um piso mínimo baseado nos dados.
+
+    Args:
+        diagnosis: Diagnóstico retornado pelo LLM.
+        analysis: Resultado da análise com dados concretos.
+
+    Returns:
+        Diagnóstico com confidence ajustada se necessário.
+    """
+    # Calcula confidence mínima baseada nas evidências concretas
+    min_confidence = 0.5  # base
+
+    if analysis.stack_traces:
+        min_confidence += 0.15  # stack traces = evidência forte
+
+    critical_count = analysis.severity_distribution.get(SeverityLevel.CRITICAL, 0)
+    if critical_count > 0:
+        min_confidence += 0.1  # erros críticos = problema claro
+
+    if analysis.spikes:
+        min_confidence += 0.1  # spike = padrão temporal identificado
+
+    if analysis.error_count >= 5:
+        min_confidence += 0.05  # múltiplas ocorrências
+
+    min_confidence = min(min_confidence, 0.95)
+
+    if diagnosis.confidence < min_confidence:
+        logger.info(
+            "confidence_adjusted",
+            original=diagnosis.confidence,
+            adjusted=round(min_confidence, 2),
+            reason="LLM subestimou baseado nas evidências disponíveis"
+        )
+        # Pydantic v2: cria nova instância com confidence ajustada
+        return diagnosis.model_copy(update={"confidence": round(min_confidence, 2)})
+
+    return diagnosis
+
+
 class OllamaAIEngine(AIEngine):
     """Motor de IA usando Ollama/LLaMA 3 via OpenAI SDK.
 
@@ -266,22 +261,27 @@ class OllamaAIEngine(AIEngine):
     ) -> None:
         """Inicializa o OllamaAIEngine com cliente OpenAI SDK.
 
+        Os valores padrão são lidos das configurações da aplicação (Settings),
+        garantindo que variáveis de ambiente como LOGPULSE_OLLAMA_MODEL e
+        LOGPULSE_OLLAMA_TIMEOUT sejam respeitadas.
+
         Args:
             base_url: URL base do servidor Ollama.
-            model: Nome do modelo LLM (padrão: llama3).
-            timeout: Timeout por chamada em segundos (padrão: 30).
+            model: Nome do modelo LLM (padrão: llama3.2:3b via settings).
+            timeout: Timeout por chamada em segundos (padrão: 120s via settings).
         """
         self._model = model
         self._client = openai.OpenAI(
             base_url=base_url,
             api_key="ollama",  # Ollama não requer API key real
             timeout=timeout,
+            max_retries=0,  # Desabilita retry do OpenAI SDK — gerenciado internamente
         )
 
     def diagnose(
         self,
         analysis: AnalysisResult,
-        sample_entries: List[LogEntry],
+        sample_entries: list[LogEntry],
     ) -> AIDiagnosis:
         """Gera diagnóstico inteligente a partir da análise de logs.
 
@@ -299,20 +299,40 @@ class OllamaAIEngine(AIEngine):
             AIEngineUnavailableError: Se o Ollama não estiver disponível.
             AIEngineTimeoutError: Se todas as tentativas esgotarem o timeout.
         """
+        logger.info(
+            "diagnosis_started",
+            model=self._model,
+            total_entries=len(sample_entries),
+            error_count=analysis.error_count,
+            warning_count=analysis.warning_count
+        )
+        
         # Verifica disponibilidade antes de processar
         _check_ollama_availability()
 
-        # Amostragem estratificada
-        sampled = _stratified_sample(sample_entries)
+        # OTIMIZAÇÃO: Filtra apenas ERROR/CRITICAL para reduzir payload
+        errors_only = _filter_errors_only(sample_entries)
+        
+        logger.info(
+            "errors_filtered",
+            original_count=len(sample_entries),
+            errors_count=len(errors_only),
+            performance_gain=f"{(1 - len(errors_only)/max(len(sample_entries), 1)) * 100:.1f}% reduction"
+        )
 
-        # Constrói prompts
-        user_prompt = _build_user_prompt(analysis, sampled)
+        # Constrói prompts (apenas com erros críticos)
+        user_prompt = _build_user_prompt(analysis, errors_only)
 
         # Tenta com retry e backoff exponencial
         last_exception: Exception | None = None
 
         for attempt in range(1, _MAX_RETRIES + 1):
-            logger.info("Tentativa %d de %d ao Ollama", attempt, _MAX_RETRIES)
+            logger.info(
+                "ollama_request_attempt",
+                attempt=attempt,
+                max_retries=_MAX_RETRIES,
+                model=self._model
+            )
             try:
                 response = self._client.chat.completions.create(
                     model=self._model,
@@ -320,23 +340,48 @@ class OllamaAIEngine(AIEngine):
                         {"role": "system", "content": _SYSTEM_PROMPT},
                         {"role": "user", "content": user_prompt},
                     ],
-                    temperature=0.3,
+                    temperature=0.1,  # Muito baixo para respostas mais determinísticas
+                    max_tokens=300,   # Reduzido para forçar respostas mais curtas
                 )
 
                 content = response.choices[0].message.content or ""
-                return _parse_llm_response(content)
+                diagnosis = _parse_llm_response(content)
+
+                # Ajusta confidence se o LLM subestimou baseado nos dados reais
+                diagnosis = _adjust_confidence(diagnosis, analysis)
+
+                logger.info(
+                    "diagnosis_completed",
+                    model=self._model,
+                    attempt=attempt,
+                    hypotheses_count=len(diagnosis.hypotheses),
+                    confidence=diagnosis.confidence
+                )
+                
+                return diagnosis
 
             except (openai.APITimeoutError, openai.APIConnectionError) as exc:
                 last_exception = exc
                 logger.warning(
-                    "Tentativa %d falhou: %s. %s",
-                    attempt,
-                    type(exc).__name__,
-                    "Aguardando antes de tentar novamente..." if attempt < _MAX_RETRIES else "Esgotadas todas as tentativas.",
+                    "ollama_request_failed",
+                    attempt=attempt,
+                    max_retries=_MAX_RETRIES,
+                    error_type=type(exc).__name__,
+                    error=str(exc),
+                    will_retry=attempt < _MAX_RETRIES
                 )
                 if attempt < _MAX_RETRIES:
-                    time.sleep(_RETRY_DELAYS[attempt - 1])
+                    delay = _RETRY_DELAYS[attempt - 1]
+                    logger.debug("retry_backoff", delay_seconds=delay)
+                    time.sleep(delay)
 
+        logger.error(
+            "diagnosis_failed",
+            model=self._model,
+            max_retries=_MAX_RETRIES,
+            last_error=str(last_exception)
+        )
+        
         raise AIEngineTimeoutError(
             f"Ollama não respondeu após {_MAX_RETRIES} tentativas. "
             f"Último erro: {last_exception}"

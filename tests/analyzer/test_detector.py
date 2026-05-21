@@ -4,15 +4,14 @@ Cobre todos os critérios de aceitação da Tarefa 5:
 - Interface abstrata LogAnalyzer
 - Agrupamento por template_id
 - Distribuição de severidade
-- Detecção de spikes (janela deslizante de 60s, threshold ≥10)
+- Detecção de spikes (janela deslizante de 120s, threshold ≥10)
 - Agrupamento de stack traces (Python, Java, Go)
 - Dados insuficientes (< 2 entradas)
 """
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from hypothesis import given, settings
@@ -22,19 +21,18 @@ from src.analyzer.base import LogAnalyzer
 from src.analyzer.detector import AnomalyDetector
 from src.models.schemas import AnalysisResult, LogEntry, LogTemplate, SeverityLevel
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-_BASE_TIME = datetime(2024, 1, 15, 10, 0, 0, tzinfo=timezone.utc)
+_BASE_TIME = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
 
 
 def make_entry(
     raw_content: str = "test log line",
     severity: SeverityLevel = SeverityLevel.INFO,
-    timestamp: Optional[datetime] = None,
-    template_id: Optional[str] = None,
+    timestamp: datetime | None = None,
+    template_id: str | None = None,
 ) -> LogEntry:
     """Cria um LogEntry para uso nos testes."""
     return LogEntry(
@@ -49,8 +47,8 @@ def make_error_entries_in_window(
     count: int,
     window_seconds: int = 59,
     severity: SeverityLevel = SeverityLevel.ERROR,
-    start_time: Optional[datetime] = None,
-) -> List[LogEntry]:
+    start_time: datetime | None = None,
+) -> list[LogEntry]:
     """Cria `count` entradas de erro distribuídas dentro de `window_seconds`."""
     base = start_time or _BASE_TIME
     entries = []
@@ -259,27 +257,27 @@ class TestTemplateGrouping:
 
 
 class TestSpikeDetection:
-    def test_exactly_10_errors_in_60s_detects_spike(self, detector: AnomalyDetector) -> None:
-        """Spike detectado com exatamente 10 erros em 60s."""
+    def test_exactly_10_errors_in_120s_detects_spike(self, detector: AnomalyDetector) -> None:
+        """Spike detectado com exatamente 10 erros em 120s."""
         entries = make_error_entries_in_window(10, window_seconds=59)
         result = detector.analyze(entries, [])
         assert len(result.spikes) >= 1
         assert result.spikes[0].error_count >= 10
 
-    def test_15_errors_in_60s_detects_spike(self, detector: AnomalyDetector) -> None:
-        """Spike detectado com 15 erros em 60s."""
+    def test_15_errors_in_120s_detects_spike(self, detector: AnomalyDetector) -> None:
+        """Spike detectado com 15 erros em 120s."""
         entries = make_error_entries_in_window(15, window_seconds=59)
         result = detector.analyze(entries, [])
         assert len(result.spikes) >= 1
 
-    def test_9_errors_in_60s_no_spike(self, detector: AnomalyDetector) -> None:
-        """Sem spike com 9 erros em 60s."""
+    def test_9_errors_in_120s_no_spike(self, detector: AnomalyDetector) -> None:
+        """Sem spike com 9 erros em 120s."""
         entries = make_error_entries_in_window(9, window_seconds=59)
         result = detector.analyze(entries, [])
         assert len(result.spikes) == 0
 
     def test_10_errors_in_61s_no_spike(self, detector: AnomalyDetector) -> None:
-        """Sem spike com 10 erros em 61s (fora da janela de 60s)."""
+        """Sem spike com 10 erros em 61s (fora da janela de 120s)."""
         base = _BASE_TIME
         entries = []
         for i in range(10):

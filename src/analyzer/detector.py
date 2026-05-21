@@ -5,9 +5,9 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 from datetime import timedelta
-from typing import Dict, List
 
 from src.analyzer.base import LogAnalyzer
+from src.core.logging import get_logger
 from src.models.schemas import (
     AnalysisResult,
     LogEntry,
@@ -15,6 +15,8 @@ from src.models.schemas import (
     SeverityLevel,
     Spike,
 )
+
+logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # Constantes de configuração
@@ -49,7 +51,7 @@ class AnomalyDetector(LogAnalyzer):
     - Validação de dados insuficientes (RF-04.5)
     """
 
-    def analyze(self, entries: List[LogEntry], templates: List[LogTemplate]) -> AnalysisResult:
+    def analyze(self, entries: list[LogEntry], templates: list[LogTemplate]) -> AnalysisResult:
         """Analisa um stream de logs e detecta anomalias.
 
         Args:
@@ -60,8 +62,19 @@ class AnomalyDetector(LogAnalyzer):
             AnalysisResult contendo anomalias detectadas, distribuição
             de severidade, spikes e metadados da análise.
         """
+        logger.info(
+            "analysis_started",
+            total_entries=len(entries),
+            total_templates=len(templates)
+        )
+        
         # Verifica dados insuficientes (RF-04.5)
         if len(entries) < 2:
+            logger.warning(
+                "insufficient_data",
+                total_entries=len(entries),
+                minimum_required=2
+            )
             return AnalysisResult(
                 total_entries=len(entries),
                 templates=templates,
@@ -70,6 +83,11 @@ class AnomalyDetector(LogAnalyzer):
 
         # Calcula distribuição de severidade (RF-04.4)
         severity_distribution = self._calculate_severity_distribution(entries)
+        
+        logger.debug(
+            "severity_distribution_calculated",
+            distribution={k.value: v for k, v in severity_distribution.items()}
+        )
 
         # Conta erros e warnings
         error_count = severity_distribution.get(SeverityLevel.ERROR, 0) + severity_distribution.get(
@@ -82,9 +100,39 @@ class AnomalyDetector(LogAnalyzer):
 
         # Detecta spikes de erro (RF-04.2, RN-02)
         spikes = self._detect_spikes(entries)
+        
+        if spikes:
+            logger.warning(
+                "spikes_detected",
+                spike_count=len(spikes),
+                spikes=[
+                    {
+                        "start_time": spike.start_time.isoformat(),
+                        "end_time": spike.end_time.isoformat(),
+                        "error_count": spike.error_count,
+                        "template_ids": spike.template_ids
+                    }
+                    for spike in spikes
+                ]
+            )
 
         # Detecta e agrupa stack traces (RF-04.3)
         stack_traces = self._detect_stack_traces(entries)
+        
+        if stack_traces:
+            logger.info(
+                "stack_traces_detected",
+                stack_trace_count=len(stack_traces)
+            )
+        
+        logger.info(
+            "analysis_completed",
+            total_entries=len(entries),
+            error_count=error_count,
+            warning_count=warning_count,
+            spike_count=len(spikes),
+            stack_trace_count=len(stack_traces)
+        )
 
         return AnalysisResult(
             total_entries=len(entries),
@@ -97,7 +145,7 @@ class AnomalyDetector(LogAnalyzer):
             insufficient_data=False,
         )
 
-    def _calculate_severity_distribution(self, entries: List[LogEntry]) -> Dict[SeverityLevel, int]:
+    def _calculate_severity_distribution(self, entries: list[LogEntry]) -> dict[SeverityLevel, int]:
         """Calcula a distribuição de entradas por nível de severidade.
 
         Args:
@@ -106,12 +154,12 @@ class AnomalyDetector(LogAnalyzer):
         Returns:
             Dicionário mapeando SeverityLevel para contagem de ocorrências.
         """
-        distribution: Dict[SeverityLevel, int] = defaultdict(int)
+        distribution: dict[SeverityLevel, int] = defaultdict(int)
         for entry in entries:
             distribution[entry.severity] += 1
         return dict(distribution)
 
-    def _group_by_template(self, entries: List[LogEntry]) -> Dict[str, List[LogEntry]]:
+    def _group_by_template(self, entries: list[LogEntry]) -> dict[str, list[LogEntry]]:
         """Agrupa entradas de log por template_id.
 
         Args:
@@ -120,13 +168,13 @@ class AnomalyDetector(LogAnalyzer):
         Returns:
             Dicionário mapeando template_id para lista de entradas.
         """
-        groups: Dict[str, List[LogEntry]] = defaultdict(list)
+        groups: dict[str, list[LogEntry]] = defaultdict(list)
         for entry in entries:
             if entry.template_id:
                 groups[entry.template_id].append(entry)
         return dict(groups)
 
-    def _detect_spikes(self, entries: List[LogEntry]) -> List[Spike]:
+    def _detect_spikes(self, entries: list[LogEntry]) -> list[Spike]:
         """Detecta spikes de erro usando janela deslizante.
 
         Um spike é definido como ≥10 erros (ERROR ou CRITICAL) em uma
@@ -150,7 +198,7 @@ class AnomalyDetector(LogAnalyzer):
         # Ordena por timestamp
         error_entries.sort(key=lambda e: e.timestamp or e.timestamp)  # type: ignore[arg-type, return-value]
 
-        spikes: List[Spike] = []
+        spikes: list[Spike] = []
         window = timedelta(seconds=_SPIKE_WINDOW_SECONDS)
         n = len(error_entries)
         i = 0
@@ -195,7 +243,7 @@ class AnomalyDetector(LogAnalyzer):
 
         return spikes
 
-    def _detect_stack_traces(self, entries: List[LogEntry]) -> List[str]:
+    def _detect_stack_traces(self, entries: list[LogEntry]) -> list[str]:
         """Detecta e agrupa stack traces multi-linha.
 
         Suporta:
@@ -209,7 +257,7 @@ class AnomalyDetector(LogAnalyzer):
         Returns:
             Lista de stack traces agrupados como strings.
         """
-        stack_traces: List[str] = []
+        stack_traces: list[str] = []
         i = 0
         n = len(entries)
 

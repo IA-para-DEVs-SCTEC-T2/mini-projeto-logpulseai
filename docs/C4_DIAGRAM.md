@@ -359,7 +359,7 @@ sequenceDiagram
     
     API->>A: analyze(entries, templates)
     A->>A: Calcula distribuição
-    A->>A: Detecta spikes (janela 60s)
+    A->>A: Detecta spikes (janela 120s)
     A->>A: Agrupa stack traces
     A-->>API: AnalysisResult
     

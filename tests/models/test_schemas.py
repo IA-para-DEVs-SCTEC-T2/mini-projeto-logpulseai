@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from hypothesis import given, settings
@@ -28,7 +28,7 @@ from src.models.schemas import (
 # Helpers
 # ---------------------------------------------------------------------------
 
-_NOW = datetime(2024, 1, 15, 10, 0, 0, tzinfo=timezone.utc)
+_NOW = datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)
 _LATER = _NOW + timedelta(seconds=60)
 
 
@@ -506,7 +506,7 @@ def test_log_text_upload_valid_content(content: str) -> None:
 
 
 @given(
-    st.datetimes(timezones=st.just(timezone.utc)),
+    st.datetimes(timezones=st.just(UTC)),
     st.timedeltas(min_value=timedelta(seconds=1), max_value=timedelta(hours=1)),
     st.integers(min_value=10, max_value=1000),
 )

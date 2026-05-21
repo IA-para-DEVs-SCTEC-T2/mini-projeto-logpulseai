@@ -7,13 +7,16 @@ como JSON para armazenamento no banco de dados.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import aiosqlite
 
+from src.core.logging import get_logger
 from src.exceptions import StorageError
-from src.models.schemas import AIDiagnosis, AnalysisResult, LogAnalysisResponse
+from src.models.schemas import AIDiagnosis, AnalysisResult, LogAnalysisResponse, SeverityLevel
 from src.repository.base import LogRepository
+
+logger = get_logger(__name__)
 
 # DDL executado na inicialização do repositório
 _CREATE_TABLE_SQL = """
@@ -24,6 +27,15 @@ CREATE TABLE IF NOT EXISTS logs (
     ai_diagnosis TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+"""
+
+# Migração para adicionar colunas issues e recommended_actions
+_ADD_ISSUES_COLUMN_SQL = """
+ALTER TABLE logs ADD COLUMN issues TEXT;
+"""
+
+_ADD_RECOMMENDED_ACTIONS_COLUMN_SQL = """
+ALTER TABLE logs ADD COLUMN recommended_actions TEXT;
 """
 
 _CREATE_INDEX_SQL = """
@@ -64,12 +76,37 @@ class SQLiteLogRepository(LogRepository):
         Raises:
             StorageError: Se a criação da tabela ou índice falhar.
         """
+        logger.info("repository_initialization_started", db_path=self._db_path)
         try:
             async with aiosqlite.connect(self._db_path) as conn:
                 await conn.execute(_CREATE_TABLE_SQL)
                 await conn.execute(_CREATE_INDEX_SQL)
+                
+                # Migração: adiciona colunas issues e recommended_actions se não existirem
+                try:
+                    await conn.execute(_ADD_ISSUES_COLUMN_SQL)
+                    logger.info("migration_add_issues_column_completed")
+                except aiosqlite.OperationalError as e:
+                    if "duplicate column name" not in str(e).lower():
+                        raise
+                    # Coluna já existe, ignora
+                
+                try:
+                    await conn.execute(_ADD_RECOMMENDED_ACTIONS_COLUMN_SQL)
+                    logger.info("migration_add_recommended_actions_column_completed")
+                except aiosqlite.OperationalError as e:
+                    if "duplicate column name" not in str(e).lower():
+                        raise
+                    # Coluna já existe, ignora
+                
                 await conn.commit()
+            logger.info("repository_initialization_completed", db_path=self._db_path)
         except aiosqlite.Error as exc:
+            logger.error(
+                "repository_initialization_failed",
+                db_path=self._db_path,
+                error=str(exc)
+            )
             raise StorageError(f"Falha ao inicializar banco de dados '{self._db_path}': {exc}") from exc
 
     async def create(
@@ -77,6 +114,8 @@ class SQLiteLogRepository(LogRepository):
         content: str,
         analysis: AnalysisResult,
         diagnosis: AIDiagnosis,
+        issues: list | None = None,
+        recommended_actions: list[str] | None = None,
     ) -> str:
         """Persiste um log analisado e retorna o UUID gerado.
 
@@ -84,6 +123,8 @@ class SQLiteLogRepository(LogRepository):
             content: Conteúdo bruto do log enviado pelo usuário.
             analysis: Resultado da análise de anomalias.
             diagnosis: Diagnóstico gerado pela IA.
+            issues: Lista de issues já calculados (opcional).
+            recommended_actions: Lista de ações recomendadas (opcional).
 
         Returns:
             UUID (string) do registro criado.
@@ -91,22 +132,42 @@ class SQLiteLogRepository(LogRepository):
         Raises:
             StorageError: Se a operação de escrita falhar.
         """
+        import json
+        
         log_id = str(uuid.uuid4())
-        created_at = datetime.now(timezone.utc).isoformat()
+        created_at = datetime.now(UTC).isoformat()
         analysis_json = analysis.model_dump_json()
         diagnosis_json = diagnosis.model_dump_json()
+        
+        # Serializa issues e recommended_actions como JSON
+        issues_json = json.dumps([i.model_dump() for i in issues]) if issues else None
+        actions_json = json.dumps(recommended_actions) if recommended_actions else None
+
+        logger.info(
+            "repository_create_started",
+            log_id=log_id,
+            content_length=len(content),
+            total_entries=analysis.total_entries
+        )
 
         try:
             async with aiosqlite.connect(self._db_path) as conn:
                 await conn.execute(
                     """
-                    INSERT INTO logs (id, content, analysis_result, ai_diagnosis, created_at)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO logs (id, content, analysis_result, ai_diagnosis, issues, recommended_actions, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (log_id, content, analysis_json, diagnosis_json, created_at),
+                    (log_id, content, analysis_json, diagnosis_json, issues_json, actions_json, created_at),
                 )
                 await conn.commit()
+            
+            logger.info("repository_create_completed", log_id=log_id)
         except aiosqlite.Error as exc:
+            logger.error(
+                "repository_create_failed",
+                log_id=log_id,
+                error=str(exc)
+            )
             raise StorageError(f"Falha ao criar registro de log: {exc}") from exc
 
         return log_id
@@ -123,20 +184,29 @@ class SQLiteLogRepository(LogRepository):
         Raises:
             StorageError: Se a operação de leitura falhar.
         """
+        logger.debug("repository_get_by_id_started", log_id=log_id)
+        
         try:
             async with aiosqlite.connect(self._db_path) as conn:
                 conn.row_factory = aiosqlite.Row
                 async with conn.execute(
-                    "SELECT id, content, analysis_result, ai_diagnosis, created_at FROM logs WHERE id = ?",
+                    "SELECT id, content, analysis_result, ai_diagnosis, issues, recommended_actions, created_at FROM logs WHERE id = ?",
                     (log_id,),
                 ) as cursor:
                     row = await cursor.fetchone()
         except aiosqlite.Error as exc:
+            logger.error(
+                "repository_get_by_id_failed",
+                log_id=log_id,
+                error=str(exc)
+            )
             raise StorageError(f"Falha ao recuperar log '{log_id}': {exc}") from exc
 
         if row is None:
+            logger.debug("repository_get_by_id_not_found", log_id=log_id)
             return None
 
+        logger.debug("repository_get_by_id_completed", log_id=log_id)
         return self._row_to_response(row)
 
     async def list_paginated(
@@ -158,12 +228,19 @@ class SQLiteLogRepository(LogRepository):
         """
         offset = (page - 1) * page_size
 
+        logger.debug(
+            "repository_list_paginated_started",
+            page=page,
+            page_size=page_size,
+            offset=offset
+        )
+
         try:
             async with aiosqlite.connect(self._db_path) as conn:
                 conn.row_factory = aiosqlite.Row
                 async with conn.execute(
                     """
-                    SELECT id, content, analysis_result, ai_diagnosis, created_at
+                    SELECT id, content, analysis_result, ai_diagnosis, issues, recommended_actions, created_at
                     FROM logs
                     ORDER BY created_at DESC
                     LIMIT ? OFFSET ?
@@ -172,9 +249,25 @@ class SQLiteLogRepository(LogRepository):
                 ) as cursor:
                     rows = await cursor.fetchall()
         except aiosqlite.Error as exc:
+            logger.error(
+                "repository_list_paginated_failed",
+                page=page,
+                page_size=page_size,
+                error=str(exc)
+            )
             raise StorageError(f"Falha ao listar logs (page={page}, page_size={page_size}): {exc}") from exc
 
-        return [self._row_to_response(row) for row in rows]
+        # Converte para lista para permitir len()
+        rows_list = list(rows)
+        
+        logger.debug(
+            "repository_list_paginated_completed",
+            page=page,
+            page_size=page_size,
+            results_count=len(rows_list)
+        )
+
+        return [self._row_to_response(row) for row in rows_list]
 
     async def count(self) -> int:
         """Retorna o total de registros no repositório.
@@ -205,6 +298,8 @@ class SQLiteLogRepository(LogRepository):
         Raises:
             StorageError: Se a operação de remoção falhar.
         """
+        logger.info("repository_delete_started", log_id=log_id)
+        
         try:
             async with aiosqlite.connect(self._db_path) as conn:
                 cursor = await conn.execute(
@@ -214,7 +309,17 @@ class SQLiteLogRepository(LogRepository):
                 rows_affected = cursor.rowcount
                 await conn.commit()
         except aiosqlite.Error as exc:
+            logger.error(
+                "repository_delete_failed",
+                log_id=log_id,
+                error=str(exc)
+            )
             raise StorageError(f"Falha ao remover log '{log_id}': {exc}") from exc
+
+        if rows_affected > 0:
+            logger.info("repository_delete_completed", log_id=log_id)
+        else:
+            logger.debug("repository_delete_not_found", log_id=log_id)
 
         return rows_affected > 0
 
@@ -224,7 +329,7 @@ class SQLiteLogRepository(LogRepository):
 
         Args:
             row: Linha retornada pelo aiosqlite com campos id, content,
-                 analysis_result, ai_diagnosis e created_at.
+                 analysis_result, ai_diagnosis, issues, recommended_actions e created_at.
 
         Returns:
             LogAnalysisResponse desserializado.
@@ -232,9 +337,24 @@ class SQLiteLogRepository(LogRepository):
         Raises:
             StorageError: Se a desserialização do JSON falhar.
         """
+        import json
+        from src.models.schemas import Issue
+        
         try:
             analysis = AnalysisResult.model_validate_json(row["analysis_result"])
             diagnosis = AIDiagnosis.model_validate_json(row["ai_diagnosis"])
+            
+            # Desserializa issues se existir
+            issues = []
+            if row["issues"]:
+                issues_data = json.loads(row["issues"])
+                issues = [Issue.model_validate(i) for i in issues_data]
+            
+            # Desserializa recommended_actions se existir
+            recommended_actions = []
+            if row["recommended_actions"]:
+                recommended_actions = json.loads(row["recommended_actions"])
+                
         except Exception as exc:
             raise StorageError(
                 f"Falha ao desserializar dados do log '{row['id']}': {exc}"
@@ -248,13 +368,21 @@ class SQLiteLogRepository(LogRepository):
             created_at = raw_ts
 
         if created_at.tzinfo is None:
-            created_at = created_at.replace(tzinfo=timezone.utc)
+            created_at = created_at.replace(tzinfo=UTC)
 
+        # Calcula métricas
+        metrics = {
+            "total_logs": analysis.total_entries,
+            "errors": analysis.severity_distribution.get(SeverityLevel.ERROR, 0),
+            "criticals": analysis.severity_distribution.get(SeverityLevel.CRITICAL, 0)
+        }
+
+        # Constrói resposta diretamente
         return LogAnalysisResponse(
             id=row["id"],
-            analysis=analysis,
-            diagnosis=diagnosis,
-            created_at=created_at,
-            total_entries=analysis.total_entries,
-            summary=diagnosis.summary,
+            analyzed_at=created_at,
+            metrics=metrics,
+            issues=issues,
+            recommended_actions=recommended_actions,
+            confidence=diagnosis.confidence
         )

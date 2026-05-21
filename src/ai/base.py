@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List
 
 from src.models.schemas import AIDiagnosis, AnalysisResult, LogEntry
 
@@ -25,7 +24,7 @@ class AIEngine(ABC):
     def diagnose(
         self,
         analysis: AnalysisResult,
-        sample_entries: List[LogEntry],
+        sample_entries: list[LogEntry],
     ) -> AIDiagnosis:
         """Gera diagnóstico inteligente a partir da análise de logs.
 

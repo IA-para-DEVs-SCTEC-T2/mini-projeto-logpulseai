@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Dict, List, Optional, Tuple
 
 from drain3 import TemplateMiner  # type: ignore[import-untyped]
 from drain3.template_miner_config import TemplateMinerConfig  # type: ignore[import-untyped]
 
+from src.core.logging import get_logger
 from src.models.schemas import LogEntry, LogTemplate, SeverityLevel
 from src.parsers.base import LogParser
 from src.parsers.normalizer import (
@@ -16,6 +16,8 @@ from src.parsers.normalizer import (
     normalize_severity,
     parse_timestamp,
 )
+
+logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # Regex para detecção de formato
@@ -67,13 +69,13 @@ class Drain3LogParser(LogParser):
         config = _build_drain_config()
         self._miner = TemplateMiner(config=config)
         # template_id → {"pattern": str, "occurrences": int, "samples": list[str]}
-        self._templates: Dict[str, Dict[str, object]] = {}
+        self._templates: dict[str, dict[str, object]] = {}
 
     # ------------------------------------------------------------------
     # Interface pública
     # ------------------------------------------------------------------
 
-    def parse(self, raw_content: str) -> List[LogEntry]:
+    def parse(self, raw_content: str) -> list[LogEntry]:
         """Transforma conteúdo bruto de log em lista de LogEntry.
 
         Args:
@@ -83,8 +85,14 @@ class Drain3LogParser(LogParser):
             Lista de LogEntry normalizadas. Linhas malformadas são
             ignoradas sem interromper o processamento.
         """
-        entries: List[LogEntry] = []
-        for line in raw_content.splitlines():
+        logger.info("Iniciando parsing de log", content_length=len(raw_content))
+        
+        entries: list[LogEntry] = []
+        lines = raw_content.splitlines()
+        total_lines = len(lines)
+        errors = 0
+        
+        for line_num, line in enumerate(lines, 1):
             line = line.strip()
             if not line:
                 continue
@@ -92,20 +100,36 @@ class Drain3LogParser(LogParser):
                 entry = self._parse_line(line)
                 if entry is not None:
                     entries.append(entry)
-            except Exception:
+            except Exception as exc:
                 # Linha malformada: registra e continua (RNF-03)
+                errors += 1
+                logger.warning(
+                    "Falha ao parsear linha",
+                    line_number=line_num,
+                    error=str(exc),
+                    raw_line=line[:100]  # Limita tamanho do log
+                )
                 continue
+        
+        logger.info(
+            "Parsing concluído",
+            total_lines=total_lines,
+            entries_parsed=len(entries),
+            errors=errors,
+            templates_extracted=len(self._templates)
+        )
+        
         return entries
 
-    def get_templates(self) -> List[LogTemplate]:
+    def get_templates(self) -> list[LogTemplate]:
         """Retorna os templates extraídos pelo Drain3 até o momento.
 
         Returns:
             Lista de LogTemplate com pattern, occurrences e sample_messages.
         """
-        result: List[LogTemplate] = []
+        result: list[LogTemplate] = []
         for tmpl_id, data in self._templates.items():
-            samples: List[str] = data.get("samples", [])  # type: ignore[assignment]
+            samples: list[str] = data.get("samples", [])  # type: ignore[assignment]
             result.append(
                 LogTemplate(
                     template_id=tmpl_id,
@@ -121,7 +145,7 @@ class Drain3LogParser(LogParser):
     # Detecção de formato
     # ------------------------------------------------------------------
 
-    def _parse_line(self, line: str) -> Optional[LogEntry]:
+    def _parse_line(self, line: str) -> LogEntry | None:
         """Detecta o formato da linha e delega ao parser correto."""
         # Tenta JSON primeiro
         if line.startswith("{"):
@@ -140,7 +164,7 @@ class Drain3LogParser(LogParser):
     # Parsers por formato
     # ------------------------------------------------------------------
 
-    def _parse_json(self, line: str) -> Optional[LogEntry]:
+    def _parse_json(self, line: str) -> LogEntry | None:
         """Parseia linha no formato JSON estruturado."""
         try:
             data = json.loads(line)
@@ -255,7 +279,7 @@ class Drain3LogParser(LogParser):
         self._templates[template_id]["occurrences"] = count + 1
 
         # Coleta até 5 amostras
-        samples: List[str] = self._templates[template_id].get("samples", [])  # type: ignore[assignment]
+        samples: list[str] = self._templates[template_id].get("samples", [])  # type: ignore[assignment]
         if len(samples) < _MAX_SAMPLES:
             samples.append(message)
             self._templates[template_id]["samples"] = samples
@@ -268,7 +292,7 @@ class Drain3LogParser(LogParser):
 # ---------------------------------------------------------------------------
 
 
-def _extract_level_from_text(text: str) -> Tuple[SeverityLevel, bool]:
+def _extract_level_from_text(text: str) -> tuple[SeverityLevel, bool]:
     """Extrai nível de severidade de uma string de texto livre.
 
     Args:
