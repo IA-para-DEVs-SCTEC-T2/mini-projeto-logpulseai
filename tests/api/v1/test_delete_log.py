@@ -1,7 +1,7 @@
 """Testes para DELETE /api/v1/logs/{id}.
 
 Valida remoção de log por UUID, retorno 204 para sucesso,
-e retorno 404 para IDs inexistentes.
+retorno 404 para IDs inexistentes, e retorno 422 para UUIDs inválidos.
 """
 
 from __future__ import annotations
@@ -14,6 +14,10 @@ from fastapi.testclient import TestClient
 
 from src.api.v1.logs import router
 from src.core.dependencies import get_repository
+
+# UUID válido para testes
+VALID_UUID = "550e8400-e29b-41d4-a716-446655440000"
+ANOTHER_VALID_UUID = "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
 
 
 @pytest.fixture
@@ -45,7 +49,7 @@ class TestDeleteLog:
         """Retorna 204 quando log é removido com sucesso."""
         mock_repository.delete.return_value = True
 
-        response = client.delete("/api/v1/logs/abc-123-def-456")
+        response = client.delete(f"/api/v1/logs/{VALID_UUID}")
 
         assert response.status_code == 204
         assert response.content == b""
@@ -58,20 +62,40 @@ class TestDeleteLog:
         """Retorna 404 quando log não existe."""
         mock_repository.delete.return_value = False
 
-        response = client.delete("/api/v1/logs/inexistente-id")
+        response = client.delete(f"/api/v1/logs/{ANOTHER_VALID_UUID}")
 
         assert response.status_code == 404
         data = response.json()
         assert "não encontrado" in data["detail"]
+
+    def test_returns_422_when_uuid_invalid(
+        self,
+        client: TestClient,
+        mock_repository: AsyncMock,
+    ) -> None:
+        """Retorna 422 quando UUID é inválido."""
+        # Testa vários formatos inválidos
+        invalid_uuids = [
+            "abc-123-def-456",  # formato errado
+            "not-a-uuid",       # não é UUID
+            "12345",            # muito curto
+            "550e8400-e29b-41d4-a716",  # incompleto
+        ]
+        
+        for invalid_uuid in invalid_uuids:
+            response = client.delete(f"/api/v1/logs/{invalid_uuid}")
+            assert response.status_code == 422, f"Failed for: {invalid_uuid}"
+            data = response.json()
+            assert "detail" in data
 
     def test_repository_called_with_correct_id(
         self,
         client: TestClient,
         mock_repository: AsyncMock,
     ) -> None:
-        """Repositório delete é chamado com o ID correto."""
+        """Repositório delete é chamado com o ID correto (como string)."""
         mock_repository.delete.return_value = True
 
-        client.delete("/api/v1/logs/meu-uuid-especifico")
+        client.delete(f"/api/v1/logs/{ANOTHER_VALID_UUID}")
 
-        mock_repository.delete.assert_called_once_with("meu-uuid-especifico")
+        mock_repository.delete.assert_called_once_with(ANOTHER_VALID_UUID)

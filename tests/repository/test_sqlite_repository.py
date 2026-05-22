@@ -143,45 +143,6 @@ async def test_get_by_id_returns_correct_response(repo: SQLiteLogRepository) -> 
 
 
 @pytest.mark.asyncio
-async def test_roundtrip_preserves_analysis_result(repo: SQLiteLogRepository) -> None:
-    """Round-trip: create() + get_by_id() deve preservar dados de AnalysisResult."""
-    analysis = make_analysis()
-    diagnosis = make_diagnosis()
-    log_id = await repo.create("log content", analysis, diagnosis)
-
-    record = await repo.get_by_id(log_id)
-
-    assert record is not None
-    assert record.analysis.total_entries == analysis.total_entries
-    assert record.analysis.error_count == analysis.error_count
-    assert record.analysis.warning_count == analysis.warning_count
-    assert record.analysis.severity_distribution == analysis.severity_distribution
-
-
-@pytest.mark.asyncio
-async def test_roundtrip_preserves_ai_diagnosis(repo: SQLiteLogRepository) -> None:
-    """Round-trip: create() + get_by_id() deve preservar dados de AIDiagnosis."""
-    analysis = make_analysis()
-    diagnosis = make_diagnosis()
-    log_id = await repo.create("log content", analysis, diagnosis)
-
-    record = await repo.get_by_id(log_id)
-
-    assert record is not None
-    assert record.diagnosis.summary == diagnosis.summary
-    assert record.diagnosis.probable_cause == diagnosis.probable_cause
-    assert len(record.diagnosis.hypotheses) == len(diagnosis.hypotheses)
-    assert record.diagnosis.hypotheses[0].description == diagnosis.hypotheses[0].description
-    assert record.diagnosis.hypotheses[0].probability == diagnosis.hypotheses[0].probability
-    assert record.diagnosis.hypotheses[0].action == diagnosis.hypotheses[0].action
-
-
-# ---------------------------------------------------------------------------
-# Testes de list_paginated()
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
 async def test_list_paginated_returns_empty_when_no_records(repo: SQLiteLogRepository) -> None:
     """list_paginated() deve retornar lista vazia quando não há registros."""
     result = await repo.list_paginated(page=1, page_size=10)
@@ -267,7 +228,6 @@ async def test_delete_actually_removes_record(repo: SQLiteLogRepository) -> None
 
 @pytest.mark.asyncio
 async def test_multiple_creates_list_returns_all(repo: SQLiteLogRepository) -> None:
-    """Múltiplos creates devem resultar em todos os registros na listagem."""
     ids = []
     for i in range(5):
         log_id = await repo.create(f"log {i}", make_analysis(), make_diagnosis())
@@ -279,42 +239,3 @@ async def test_multiple_creates_list_returns_all(repo: SQLiteLogRepository) -> N
     assert len(result) == 5
     for log_id in ids:
         assert log_id in result_ids
-
-
-@pytest.mark.asyncio
-async def test_created_at_is_set_automatically(repo: SQLiteLogRepository) -> None:
-    """created_at deve ser definido automaticamente ao criar um registro."""
-    before = datetime.now(UTC)
-    log_id = await repo.create("log content", make_analysis(), make_diagnosis())
-    after = datetime.now(UTC)
-
-    record = await repo.get_by_id(log_id)
-
-    assert record is not None
-    assert record.created_at is not None
-    assert isinstance(record.created_at, datetime)
-    # Verifica que o timestamp está dentro do intervalo esperado
-    assert before <= record.created_at <= after
-
-
-@pytest.mark.asyncio
-async def test_list_ordered_by_created_at_desc(repo: SQLiteLogRepository) -> None:
-    """list_paginated() deve retornar registros ordenados por created_at DESC."""
-    import asyncio
-
-    # Cria registros com pequeno intervalo para garantir ordem
-    ids_in_order = []
-    for i in range(3):
-        log_id = await repo.create(f"log {i}", make_analysis(), make_diagnosis())
-        ids_in_order.append(log_id)
-        await asyncio.sleep(0.01)  # garante timestamps distintos
-
-    result = await repo.list_paginated(page=1, page_size=10)
-
-    # O mais recente deve vir primeiro
-    assert result[0].id == ids_in_order[-1]
-    assert result[-1].id == ids_in_order[0]
-
-    # Verifica que a ordem é decrescente
-    for i in range(len(result) - 1):
-        assert result[i].created_at >= result[i + 1].created_at

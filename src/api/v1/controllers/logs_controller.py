@@ -68,7 +68,7 @@ class LogsController:
             LogAnalysisResponse com análise e diagnóstico.
 
         Raises:
-            HTTPException 400: Extensão inválida.
+            HTTPException 415: Formato de arquivo não suportado.
             HTTPException 422: Arquivo vazio.
         """
         filename = file.filename or ""
@@ -78,8 +78,8 @@ class LogsController:
         if not filename.lower().endswith(_ALLOWED_EXTENSIONS):
             logger.warning("upload_file_rejected", filename=filename, reason="invalid_extension")
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Apenas arquivos .log e .txt são aceitos.",
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                detail=f"Formato de arquivo não suportado. Apenas {_ALLOWED_EXTENSIONS} são aceitos.",
             )
 
         # Leitura do conteúdo
@@ -101,7 +101,7 @@ class LogsController:
             "upload_file_success",
             filename=filename,
             log_id=response.id,
-            total_entries=response.total_entries,
+            total_logs=response.metrics.get("total_logs", 0),
         )
         return response
 
@@ -119,7 +119,11 @@ class LogsController:
         # Delega ao service
         response = await self._analysis_service.analyze_content(payload.content)
 
-        logger.info("upload_text_success", log_id=response.id, total_entries=response.total_entries)
+        logger.info(
+            "upload_text_success",
+            log_id=response.id,
+            total_logs=response.metrics.get("total_logs", 0),
+        )
         return response
 
     async def list_logs(self, page: int = 1, page_size: int = 20) -> LogListResponse:

@@ -25,7 +25,7 @@ Esta documentação registra os prompts e decisões tomadas durante a implementa
 > - Retornar `insufficient_data=True` se houver menos de 2 entradas
 > - Calcular distribuição de severidade (contagem por `SeverityLevel`)
 > - Calcular `error_count` (ERROR + CRITICAL) e `warning_count`
-> - Detectar spikes de erro usando janela deslizante de 60s com threshold ≥10
+> - Detectar spikes de erro usando janela deslizante de 120s com threshold ≥10
 > - Detectar e agrupar stack traces Python, Java e Go
 > - Agrupar entradas por `template_id`
 >
@@ -41,7 +41,7 @@ Esta documentação registra os prompts e decisões tomadas durante a implementa
 ## Prompt 3 — Implementar detecção de spikes com janela deslizante
 
 **Prompt:**
-> A função `_detect_spikes` deve usar janela deslizante de 60 segundos. Para cada posição `i` na lista de erros ordenada por timestamp, colete todas as entradas dentro de `[timestamp[i], timestamp[i] + 60s]`. Se houver ≥10 entradas na janela, crie um `Spike` e avance o ponteiro para depois do fim da janela. O `Spike` deve ter `end_time > start_time` (se forem iguais, adicione 1 segundo).
+> A função `_detect_spikes` deve usar janela deslizante de 60 segundos. Para cada posição `i` na lista de erros ordenada por timestamp, colete todas as entradas dentro de `[timestamp[i], timestamp[i] + 120s]`. Se houver ≥10 entradas na janela, crie um `Spike` e avance o ponteiro para depois do fim da janela. O `Spike` deve ter `end_time > start_time` (se forem iguais, adicione 1 segundo).
 
 **Decisões técnicas:**
 - Filtra apenas entradas com `severity in {ERROR, CRITICAL}` e `timestamp is not None`
@@ -91,9 +91,9 @@ elif current_type == "python" and (
 > - Interface abstrata não pode ser instanciada
 > - Agrupamento por `template_id`
 > - Distribuição de severidade soma 100% das entradas
-> - Spike com exatamente 10 erros em 60s
-> - Spike com 15 erros em 60s
-> - Sem spike com 9 erros em 60s
+> - Spike com exatamente 10 erros em 120s
+> - Spike com 15 erros em 120s
+> - Sem spike com 9 erros em 120s
 > - Sem spike com 10 erros em 61s
 > - Python traceback multi-linha agrupado em 1 evento
 > - Java stacktrace multi-linha agrupado em 1 evento

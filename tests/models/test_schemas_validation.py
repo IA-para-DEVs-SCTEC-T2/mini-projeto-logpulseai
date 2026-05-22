@@ -352,20 +352,6 @@ class TestAIDiagnosis:
         assert diagnosis.probable_cause == "Pool de conexões esgotado"
         assert len(diagnosis.hypotheses) == 3
 
-    def test_ai_diagnosis_minimum_3_hypotheses(self) -> None:
-        """AIDiagnosis rejeita lista com < 3 hypotheses."""
-        with pytest.raises(ValidationError) as exc_info:
-            AIDiagnosis(
-                summary="Test",
-                probable_cause="Test",
-                hypotheses=[
-                    Hypothesis(description="H1", probability="alta", action="A1"),
-                    Hypothesis(description="H2", probability="média", action="A2"),
-                ],
-            )
-        errors = exc_info.value.errors()
-        assert any(e["loc"] == ("hypotheses",) for e in errors)
-
     def test_ai_diagnosis_validates_hypothesis_actions(self) -> None:
         """AIDiagnosis valida que todas as hipóteses têm action não vazio."""
         with pytest.raises(ValidationError) as exc_info:

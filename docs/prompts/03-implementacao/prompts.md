@@ -423,7 +423,7 @@ class LogAnalyzer(ABC):
 2. **Detecção de Anomalias:**
    - Agrupa entradas por template_id
    - Calcula distribuição de severidade
-   - Detecta spikes de erro (≥10 erros em 60s)
+   - Detecta spikes de erro (≥10 erros em 120s)
    - Agrupa stack traces multi-linha
 
 3. **Validação de Dados:**
@@ -523,7 +523,7 @@ AnomalyDetector implementado e validado com sucesso:
 - Classe `AnomalyDetector` implementando interface `LogAnalyzer`
 - Agrupamento de LogEntry por template_id (RF-04.1)
 - Cálculo de distribuição de severidade (RF-04.4)
-- Detecção de spikes com janela deslizante de 60s, threshold ≥10 (RF-04.2, RN-02)
+- Detecção de spikes com janela deslizante de 120s, threshold ≥10 (RF-04.2, RN-02)
 - Agrupamento de stack traces: Python traceback, Java stacktrace, Go panic (RF-04.3)
 - Validação de dados insuficientes: < 2 entradas → insufficient_data=True (RF-04.5)
 
@@ -595,12 +595,12 @@ AnomalyDetector implementado e validado com sucesso:
 
 **Requisitos Atendidos:**
 - ✅ RF-04.1: Agrupa LogEntry por template_id
-- ✅ RF-04.2: Detecta spikes (≥10 erros em 60s)
+- ✅ RF-04.2: Detecta spikes (≥10 erros em 120s)
 - ✅ RF-04.3: Agrupa stack traces (Python, Java, Go)
 - ✅ RF-04.4: Calcula distribuição de severidade
 - ✅ RF-04.5: Retorna insufficient_data=True se < 2 entradas
 - ✅ RN-01: LogEntry crítico = ERROR ou CRITICAL
-- ✅ RN-02: Spike = 10+ entradas críticas em 60s
+- ✅ RN-02: Spike = 10+ entradas críticas em 120s
 
 **Próximas Etapas:**
 - Tarefa 5.3: Implementar detecção de spikes (já integrada no AnomalyDetector)

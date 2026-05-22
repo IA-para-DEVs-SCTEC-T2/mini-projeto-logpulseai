@@ -16,7 +16,7 @@ Implementar detecção de spikes de erro no AnomalyDetector com:
 - Spikes não se sobrepõem (avança para depois do fim da janela)
 
 Testes de propriedade (hypothesis) validando:
-- ≥10 erros em ≤60s sempre gera spike
+- ≥10 erros em ≤120s sempre gera spike
 - <10 erros nunca gera spike
 - INFO/WARNING/DEBUG nunca geram spike
 - Todo spike tem error_count >= 10

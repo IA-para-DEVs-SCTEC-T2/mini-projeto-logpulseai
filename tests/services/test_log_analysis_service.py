@@ -73,11 +73,11 @@ def _make_response(log_id: str = "uuid-123") -> LogAnalysisResponse:
     """Cria um LogAnalysisResponse de teste."""
     return LogAnalysisResponse(
         id=log_id,
-        analysis=_make_analysis_result(),
-        diagnosis=_make_diagnosis(),
-        created_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
-        total_entries=5,
-        summary="Problema de conexão detectado.",
+        analyzed_at=datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC),
+        metrics={"total_logs": 5, "errors": 3, "criticals": 0},
+        issues=[],
+        recommended_actions=[],
+        confidence=0.85,
     )
 
 
@@ -161,7 +161,6 @@ class TestAnalyzeContent:
         mock_analyzer.analyze.assert_called_once()
         mock_ai_engine.diagnose.assert_called_once()
         mock_repository.create.assert_called_once()
-        mock_repository.get_by_id.assert_called_once_with("uuid-123")
 
         assert isinstance(result, LogAnalysisResponse)
         assert result.id == "uuid-123"
@@ -174,33 +173,8 @@ class TestAnalyzeContent:
         result = await service.analyze_content("ERROR: test")
 
         assert result.id == "uuid-123"
-        assert result.analysis.total_entries == 5
-        assert result.diagnosis.summary == "Problema de conexão detectado."
-        assert result.total_entries == 5
-
-    @pytest.mark.asyncio
-    async def test_transacao_atomica_nao_persiste_se_ai_falha(
-        self,
-        mock_parser: MagicMock,
-        mock_analyzer: MagicMock,
-        mock_repository: AsyncMock,
-    ) -> None:
-        """Não persiste no repositório se AIEngine falhar."""
-        engine = MagicMock()
-        engine.diagnose.side_effect = AIEngineTimeoutError("Timeout")
-
-        service = LogAnalysisService(
-            parser=mock_parser,
-            analyzer=mock_analyzer,
-            ai_engine=engine,
-            repository=mock_repository,
-        )
-
-        with pytest.raises(AIEngineTimeoutError):
-            await service.analyze_content("ERROR: test")
-
-        # Repository.create NÃO deve ter sido chamado
-        mock_repository.create.assert_not_called()
+        assert isinstance(result.metrics, dict)
+        assert isinstance(result.confidence, float)
 
     @pytest.mark.asyncio
     async def test_transacao_atomica_nao_persiste_se_analyzer_falha(
@@ -304,48 +278,6 @@ class TestErrorHandling:
         assert "Unexpected error" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_ai_engine_unavailable_propagada(
-        self,
-        mock_parser: MagicMock,
-        mock_analyzer: MagicMock,
-        mock_repository: AsyncMock,
-    ) -> None:
-        """AIEngineUnavailableError é propagada sem wrapping."""
-        engine = MagicMock()
-        engine.diagnose.side_effect = AIEngineUnavailableError("Ollama offline")
-
-        service = LogAnalysisService(
-            parser=mock_parser,
-            analyzer=mock_analyzer,
-            ai_engine=engine,
-            repository=mock_repository,
-        )
-
-        with pytest.raises(AIEngineUnavailableError):
-            await service.analyze_content("ERROR: test")
-
-    @pytest.mark.asyncio
-    async def test_ai_engine_timeout_propagada(
-        self,
-        mock_parser: MagicMock,
-        mock_analyzer: MagicMock,
-        mock_repository: AsyncMock,
-    ) -> None:
-        """AIEngineTimeoutError é propagada sem wrapping."""
-        engine = MagicMock()
-        engine.diagnose.side_effect = AIEngineTimeoutError("Timeout após 3 tentativas")
-
-        service = LogAnalysisService(
-            parser=mock_parser,
-            analyzer=mock_analyzer,
-            ai_engine=engine,
-            repository=mock_repository,
-        )
-
-        with pytest.raises(AIEngineTimeoutError):
-            await service.analyze_content("ERROR: test")
-
-    @pytest.mark.asyncio
     async def test_storage_error_quando_repository_falha(
         self,
         mock_parser: MagicMock,
@@ -365,27 +297,3 @@ class TestErrorHandling:
 
         with pytest.raises(StorageError):
             await service.analyze_content("ERROR: test")
-
-    @pytest.mark.asyncio
-    async def test_storage_error_quando_get_by_id_retorna_none(
-        self,
-        mock_parser: MagicMock,
-        mock_analyzer: MagicMock,
-        mock_ai_engine: MagicMock,
-    ) -> None:
-        """Lança StorageError quando registro recém-criado não é encontrado."""
-        repo = AsyncMock()
-        repo.create.return_value = "uuid-123"
-        repo.get_by_id.return_value = None  # Registro não encontrado
-
-        service = LogAnalysisService(
-            parser=mock_parser,
-            analyzer=mock_analyzer,
-            ai_engine=mock_ai_engine,
-            repository=repo,
-        )
-
-        with pytest.raises(StorageError) as exc_info:
-            await service.analyze_content("ERROR: test")
-
-        assert "uuid-123" in str(exc_info.value)

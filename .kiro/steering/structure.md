@@ -9,16 +9,20 @@ inclusion: always
 ```
 logpulse-ia/
 ├── src/                  # Código-fonte principal
-│   ├── api/              # Rotas e controllers FastAPI
+│   ├── api/              # Camada HTTP (FastAPI, middleware, health check)
 │   │   └── v1/
-│   │       └── logs/     # Endpoints de logs (file, text, CRUD)
-│   ├── services/         # Lógica de negócio (análise, diagnóstico)
+│   │       ├── controllers/  # Controller MVC: valida entrada e delega aos services
+│   │       └── routes/       # View MVC: define rotas HTTP e delega ao controller
+│   ├── services/         # Lógica de negócio (análise, diagnóstico, CRUD)
 │   ├── parsers/          # Integração com Drain3 para parsing de logs
+│   ├── analyzer/         # Detecção de anomalias (spikes, stack traces)
 │   ├── ai/               # Integração com Ollama/LLaMA 3 via OpenAI SDK
-│   ├── models/           # Modelos SQLite e schemas Pydantic
+│   ├── models/           # Schemas Pydantic (request, response, domínio)
+│   ├── repository/       # Persistência SQLite com aiosqlite
 │   └── core/             # Configurações, dependências e utilitários
 ├── tests/                # Testes automatizados (cobertura mínima 30%)
 ├── logs/                 # Arquivos de log para testes e exemplos
+│   └── fixtures/         # Logs de exemplo para testes (Java, Python, Go, etc.)
 ├── docs/                 # Documentação adicional
 └── README.md
 ```

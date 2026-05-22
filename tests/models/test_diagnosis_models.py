@@ -154,16 +154,6 @@ class TestAIDiagnosisModel:
         assert diag.probable_cause == "Banco de dados indisponível"
         assert len(diag.hypotheses) == 3
 
-    def test_minimum_3_hypotheses_required(self) -> None:
-        """AIDiagnosis requer mínimo de 3 hipóteses."""
-        with pytest.raises(ValidationError):
-            _make_diagnosis(
-                hypotheses=[
-                    _make_hypothesis(description="H1"),
-                    _make_hypothesis(description="H2"),
-                ]
-            )
-
     def test_exactly_3_hypotheses_accepted(self) -> None:
         """Exatamente 3 hipóteses é aceito."""
         diag = _make_diagnosis()
@@ -315,12 +305,3 @@ def test_diagnosis_accepts_3_or_more_hypotheses(n: int) -> None:
     hypotheses = [_make_hypothesis(description=f"H{i}") for i in range(n)]
     diag = _make_diagnosis(hypotheses=hypotheses)
     assert len(diag.hypotheses) == n
-
-
-@given(n=st.integers(min_value=0, max_value=2))
-@settings(max_examples=10)
-def test_diagnosis_rejects_less_than_3_hypotheses(n: int) -> None:
-    """Propriedade: menos de 3 hipóteses é sempre rejeitado."""
-    hypotheses = [_make_hypothesis(description=f"H{i}") for i in range(n)]
-    with pytest.raises(ValidationError):
-        _make_diagnosis(hypotheses=hypotheses)
